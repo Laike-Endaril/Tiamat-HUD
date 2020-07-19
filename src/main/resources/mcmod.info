@@ -1,0 +1,16 @@
+[
+{
+  "modid": "tiamathud",
+  "name": "Tiamat HUD",
+  "description": "Customizable HUDs",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["Laike_Endaril"],
+  "credits": "",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
