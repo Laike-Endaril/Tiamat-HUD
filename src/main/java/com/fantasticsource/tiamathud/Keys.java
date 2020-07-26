@@ -1,5 +1,6 @@
 package com.fantasticsource.tiamathud;
 
+import com.fantasticsource.mctools.gui.GUIScreen;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraftforge.client.settings.KeyConflictContext;
 import net.minecraftforge.client.settings.KeyModifier;
@@ -31,8 +32,7 @@ public class Keys
     {
         if (EDIT_HUD.isKeyDown())
         {
-            //TODO open HUD editing GUI
-            System.out.println("asdf");
+            GUIScreen.showUnstacked(new HUDEditingGUI());
         }
     }
 }

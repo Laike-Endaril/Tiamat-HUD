@@ -1,4 +1,3 @@
-List of HUD elements with their names (editable, not namespaced), type (click to select), and edit button
 Sub-GUI for edit button, depending on type...
 
 Bar
