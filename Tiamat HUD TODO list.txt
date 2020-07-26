@@ -3,9 +3,23 @@ Sub-GUI for edit button, depending on type...
 
 Bar
 double xPos = 0, yPos = 0;
-String min = "0", current = "25", max = "100";
 double hScale = 1, vScale = 1;
-
 int direction = 0; //left to right; other options are bottom to top, right to left, top to bottom
+
 ResourceLocation background = null, fill = null, foreground = null;
 Color backColor = WHITE.clone(), fillColor = WHITE.clone(), foreColor = WHITE.clone()
+
+String centerText = "current", lowEndText = "", highEndText = "";
+Color textColor = BLACK.clone(), textOutlineColor = WHITE.clone();
+
+String min = "0", current = "health", max = "attribute:genaric.maxHealth";
+
+
+
+Default HUD replacements for
+HP
+Hunger
+Exp
+Armor
+
+Hotbar
