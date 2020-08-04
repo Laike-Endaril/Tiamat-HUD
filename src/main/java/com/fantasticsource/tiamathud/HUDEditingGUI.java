@@ -11,6 +11,7 @@ import com.fantasticsource.mctools.gui.element.text.GUIText;
 import com.fantasticsource.mctools.gui.element.text.filter.FilterNone;
 import com.fantasticsource.mctools.gui.element.view.GUIList;
 import com.fantasticsource.mctools.gui.screen.TextSelectionGUI;
+import com.fantasticsource.tiamathud.hudelement.HUDElement;
 import com.fantasticsource.tools.datastructures.Color;
 
 public class HUDEditingGUI extends GUIScreen
@@ -28,7 +29,7 @@ public class HUDEditingGUI extends GUIScreen
         root.add(navbar);
 
 
-        //List of actions
+        //List of HUD elements
         hudElements = new GUIList(this, true, 0.98, 1 - (navbar.y + navbar.height))
         {
             @Override
@@ -52,7 +53,7 @@ public class HUDEditingGUI extends GUIScreen
         GUIVerticalScrollbar scrollbar = new GUIVerticalScrollbar(this, 0.02, 1 - (navbar.y + navbar.height), Color.GRAY, Color.BLANK, Color.WHITE, Color.BLANK, hudElements);
         root.addAll(hudElements, scrollbar);
 
-        //Add existing actions
+        //Add existing HUD elements
         //TODO
 
         //Add GUI actions
@@ -65,7 +66,7 @@ public class HUDEditingGUI extends GUIScreen
         {
             if (element instanceof GUIList.Line)
             {
-                //TODO
+                //TODO remove data for element
             }
             return true;
         });

@@ -1,18 +1,7 @@
-Sub-GUI for edit button, depending on type...
+Sub-GUI for edit button, depending on element type
 
-Bar
-double xPos = 0, yPos = 0;
-double hScale = 1, vScale = 1;
-int direction = 0; //left to right; other options are bottom to top, right to left, top to bottom
 
-ResourceLocation background = null, fill = null, foreground = null;
-Color backColor = WHITE.clone(), fillColor = WHITE.clone(), foreColor = WHITE.clone()
-
-String centerText = "current", lowEndText = "", highEndText = "";
-Color textColor = BLACK.clone(), textOutlineColor = WHITE.clone();
-
-String min = "0", current = "health", max = "attribute:genaric.maxHealth";
-
+Options for whether each vanilla element is rendered
 
 
 Default HUD replacements for
