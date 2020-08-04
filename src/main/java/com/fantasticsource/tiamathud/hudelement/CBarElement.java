@@ -2,20 +2,27 @@ package com.fantasticsource.tiamathud.hudelement;
 
 import com.fantasticsource.mctools.MCTools;
 import com.fantasticsource.tools.PNG;
+import com.fantasticsource.tools.component.CDouble;
+import com.fantasticsource.tools.component.CInt;
+import com.fantasticsource.tools.component.CStringUTF8;
 import com.fantasticsource.tools.datastructures.Color;
+import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
+import net.minecraftforge.fml.common.network.ByteBufUtils;
 import org.lwjgl.opengl.Display;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.LinkedHashMap;
 
 import static com.fantasticsource.tiamathud.TiamatHUD.MODID;
 import static org.lwjgl.opengl.GL11.GL_QUADS;
 
-public class BarElement extends HUDElement
+public class CBarElement extends CHUDElement
 {
     public static final ResourceLocation
             DEFAULT_BACK_RL = new ResourceLocation(MODID, "image/default_bar_back.png"),
@@ -208,5 +215,147 @@ public class BarElement extends HUDElement
 
 
         GlStateManager.popMatrix();
+    }
+
+
+    @Override
+    public CBarElement write(ByteBuf buf)
+    {
+        super.write(buf);
+
+        buf.writeInt(x);
+        buf.writeInt(y);
+
+        buf.writeDouble(hScale);
+        buf.writeDouble(vScale);
+
+        buf.writeInt(direction);
+
+        ByteBufUtils.writeUTF8String(buf, backRL.toString());
+        ByteBufUtils.writeUTF8String(buf, fillRL.toString());
+        ByteBufUtils.writeUTF8String(buf, foreRL.toString());
+
+        buf.writeInt(backColor.color());
+        buf.writeInt(fillColor.color());
+        buf.writeInt(foreColor.color());
+
+        ByteBufUtils.writeUTF8String(buf, centerText);
+        ByteBufUtils.writeUTF8String(buf, lowEndText);
+        ByteBufUtils.writeUTF8String(buf, highEndText);
+
+        buf.writeInt(textColor.color());
+        buf.writeInt(textOutlineColor.color());
+
+        buf.writeDouble(textScale);
+
+        ByteBufUtils.writeUTF8String(buf, min);
+        ByteBufUtils.writeUTF8String(buf, current);
+        ByteBufUtils.writeUTF8String(buf, max);
+
+        return this;
+    }
+
+    @Override
+    public CBarElement read(ByteBuf buf)
+    {
+        super.read(buf);
+
+        x = buf.readInt();
+        y = buf.readInt();
+
+        hScale = buf.readDouble();
+        vScale = buf.readDouble();
+
+        direction = buf.readInt();
+
+        backRL = new ResourceLocation(ByteBufUtils.readUTF8String(buf));
+        fillRL = new ResourceLocation(ByteBufUtils.readUTF8String(buf));
+        foreRL = new ResourceLocation(ByteBufUtils.readUTF8String(buf));
+
+        backColor = new Color(buf.readInt());
+        fillColor = new Color(buf.readInt());
+        foreColor = new Color(buf.readInt());
+
+        centerText = ByteBufUtils.readUTF8String(buf);
+        lowEndText = ByteBufUtils.readUTF8String(buf);
+        highEndText = ByteBufUtils.readUTF8String(buf);
+
+        textColor = new Color(buf.readInt());
+        textOutlineColor = new Color(buf.readInt());
+
+        textScale = buf.readDouble();
+
+        min = ByteBufUtils.readUTF8String(buf);
+        current = ByteBufUtils.readUTF8String(buf);
+        max = ByteBufUtils.readUTF8String(buf);
+
+        return this;
+    }
+
+    @Override
+    public CBarElement save(OutputStream stream)
+    {
+        super.save(stream);
+
+        CInt ci = new CInt().set(x).save(stream).set(y).save(stream);
+
+        CDouble cd = new CDouble().set(hScale).save(stream).set(vScale).save(stream);
+
+        ci.set(direction).save(stream);
+
+        CStringUTF8 cs = new CStringUTF8().set(backRL.toString()).save(stream).set(fillRL.toString()).save(stream).set(foreRL.toString()).save(stream);
+
+        ci.set(backColor.color()).save(stream).set(fillColor.color()).save(stream).set(foreColor.color()).save(stream);
+
+        cs.set(centerText).save(stream).set(lowEndText).save(stream).set(highEndText).save(stream);
+
+        ci.set(textColor.color()).save(stream).set(textOutlineColor.color()).save(stream);
+
+        cd.set(textScale).save(stream);
+
+        cs.set(min).save(stream).set(current).save(stream).set(max).save(stream);
+
+        return this;
+    }
+
+    @Override
+    public CBarElement load(InputStream stream)
+    {
+        super.load(stream);
+
+        CInt ci = new CInt();
+        CDouble cd = new CDouble();
+        CStringUTF8 cs = new CStringUTF8();
+
+        x = ci.load(stream).value;
+        y = ci.load(stream).value;
+
+        hScale = cd.load(stream).value;
+        vScale = cd.load(stream).value;
+
+        direction = ci.load(stream).value;
+
+        backRL = new ResourceLocation(cs.load(stream).value);
+        fillRL = new ResourceLocation(cs.load(stream).value);
+        foreRL = new ResourceLocation(cs.load(stream).value);
+
+        backColor = new Color(ci.load(stream).value);
+        fillColor = new Color(ci.load(stream).value);
+        foreColor = new Color(ci.load(stream).value);
+
+        centerText = cs.load(stream).value;
+        lowEndText = cs.load(stream).value;
+        highEndText = cs.load(stream).value;
+
+        textColor = new Color(ci.load(stream).value);
+        textOutlineColor = new Color(ci.load(stream).value);
+
+        textScale = cd.load(stream).value;
+
+        min = cs.load(stream).value;
+        current = cs.load(stream).value;
+        max = cs.load(stream).value;
+
+        return this;
     }
 }

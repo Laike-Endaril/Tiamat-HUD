@@ -11,7 +11,7 @@ import com.fantasticsource.mctools.gui.element.text.GUIText;
 import com.fantasticsource.mctools.gui.element.text.filter.FilterNone;
 import com.fantasticsource.mctools.gui.element.view.GUIList;
 import com.fantasticsource.mctools.gui.screen.TextSelectionGUI;
-import com.fantasticsource.tiamathud.hudelement.HUDElement;
+import com.fantasticsource.tiamathud.hudelement.CHUDElement;
 import com.fantasticsource.tools.datastructures.Color;
 
 public class HUDEditingGUI extends GUIScreen
@@ -36,7 +36,7 @@ public class HUDEditingGUI extends GUIScreen
             public GUIElement[] newLineDefaultElements()
             {
                 GUIText typeLabel = new GUIText(screen, "Type: ", getIdleColor(Color.WHITE), getHoverColor(Color.WHITE), Color.WHITE);
-                GUIText type = new GUIText(screen, HUDElement.TYPES.keySet().iterator().next(), getIdleColor(Color.WHITE), getHoverColor(Color.WHITE), Color.WHITE);
+                GUIText type = new GUIText(screen, CHUDElement.TYPES.keySet().iterator().next(), getIdleColor(Color.WHITE), getHoverColor(Color.WHITE), Color.WHITE);
                 typeLabel.linkMouseActivity(type);
                 type.linkMouseActivity(typeLabel);
 
@@ -46,7 +46,7 @@ public class HUDEditingGUI extends GUIScreen
                         new GUILabeledTextInput(screen, "Name: ", "HUD Element", FilterNone.INSTANCE),
                         new GUIElement(screen, 1, 0),
                         typeLabel.addClickActions(type::click),
-                        type.addClickActions(() -> new TextSelectionGUI(type, "Select Type", HUDElement.TYPES.keySet().toArray(new String[0])))
+                        type.addClickActions(() -> new TextSelectionGUI(type, "Select Type", CHUDElement.TYPES.keySet().toArray(new String[0])))
                 };
             }
         };

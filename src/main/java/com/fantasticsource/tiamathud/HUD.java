@@ -1,7 +1,7 @@
 package com.fantasticsource.tiamathud;
 
 import com.fantasticsource.mctools.Render;
-import com.fantasticsource.tiamathud.hudelement.HUDElement;
+import com.fantasticsource.tiamathud.hudelement.CHUDElement;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -13,7 +13,7 @@ import java.util.ArrayList;
 @SideOnly(Side.CLIENT)
 public class HUD
 {
-    public static final ArrayList<HUDElement> HUD_ELEMENTS = new ArrayList<>();
+    public static final ArrayList<CHUDElement> HUD_ELEMENTS = new ArrayList<>();
 
     @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
     public static void drawHUD(Render.RenderHUDEvent event)
@@ -25,7 +25,7 @@ public class HUD
         try
         {
             event.setScalingMode(Render.SCALING_FULL);
-            for (HUDElement hudElement : HUD_ELEMENTS)
+            for (CHUDElement hudElement : HUD_ELEMENTS)
             {
                 hudElement.tryDraw();
             }
