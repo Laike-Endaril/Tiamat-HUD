@@ -14,9 +14,12 @@ import com.fantasticsource.mctools.gui.screen.TextSelectionGUI;
 import com.fantasticsource.tiamathud.hudelement.CHUDElement;
 import com.fantasticsource.tools.datastructures.Color;
 
+import java.util.LinkedHashMap;
+
 public class HUDEditingGUI extends GUIScreen
 {
     protected GUIList hudElements;
+    protected LinkedHashMap<GUIButton, CHUDElement> editButtonToHUDElement = new LinkedHashMap<>();
 
     public HUDEditingGUI()
     {
@@ -66,7 +69,7 @@ public class HUDEditingGUI extends GUIScreen
         {
             if (element instanceof GUIList.Line)
             {
-                //TODO remove data for element
+                CHUDElement.HUD_ELEMENTS.remove(editButtonToHUDElement.remove(((GUIList.Line) element).getLineElement(0)));
             }
             return true;
         });
@@ -76,5 +79,13 @@ public class HUDEditingGUI extends GUIScreen
     public String title()
     {
         return "HUD Elements";
+    }
+
+    @Override
+    public void onClosed()
+    {
+        CHUDElement.saveAll();
+
+        super.onClosed();
     }
 }
