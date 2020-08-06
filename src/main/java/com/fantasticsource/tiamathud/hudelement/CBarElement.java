@@ -62,8 +62,9 @@ public class CBarElement extends CHUDElement
     public Color backColor = Color.WHITE, fillColor = Color.WHITE, foreColor = Color.WHITE;
 
     public String centerText = "current", lowEndText = "", highEndText = "";
-    public Color textColor = Color.BLACK, textOutlineColor = Color.WHITE;
-    public double textScale = 1;
+    public Color centerTextColor = Color.BLACK, lowEndTextColor = Color.BLACK, highEndTextColor = Color.BLACK;
+    public Color centerTextOutlineColor = Color.WHITE, lowEndTextOutlineColor = Color.WHITE, highEndTextOutlineColor = Color.WHITE;
+    public double centerTextScale = 1, lowEndTextScale = 1, highEndTextScale = 1;
 
     public String min = "0", current = "health", max = "attribute:generic.maxHealth";
 
@@ -201,16 +202,52 @@ public class CBarElement extends CHUDElement
             GlStateManager.popMatrix();
         }
 
-        //Text Outline
-        if (textOutlineColor.af() > 0)
+        //Low-End Text
+        if (!lowEndText.equals(""))
         {
-            //TODO
+            //Outline
+            if (lowEndTextOutlineColor.af() > 0)
+            {
+                //TODO
+            }
+
+            //Text
+            if (lowEndTextColor.af() > 0)
+            {
+                //TODO
+            }
         }
 
-        //Text
-        if (textColor.af() > 0)
+        //High-End Text
+        if (!highEndText.equals(""))
         {
-            //TODO
+            //Outline
+            if (highEndTextOutlineColor.af() > 0)
+            {
+                //TODO
+            }
+
+            //Text
+            if (highEndTextColor.af() > 0)
+            {
+                //TODO
+            }
+        }
+
+        //Center Text
+        if (!centerText.equals(""))
+        {
+            //Outline
+            if (centerTextOutlineColor.af() > 0)
+            {
+                //TODO
+            }
+
+            //Text
+            if (centerTextColor.af() > 0)
+            {
+                //TODO
+            }
         }
 
 
@@ -243,10 +280,17 @@ public class CBarElement extends CHUDElement
         ByteBufUtils.writeUTF8String(buf, lowEndText);
         ByteBufUtils.writeUTF8String(buf, highEndText);
 
-        buf.writeInt(textColor.color());
-        buf.writeInt(textOutlineColor.color());
+        buf.writeInt(centerTextColor.color());
+        buf.writeInt(lowEndTextColor.color());
+        buf.writeInt(highEndTextColor.color());
 
-        buf.writeDouble(textScale);
+        buf.writeInt(centerTextOutlineColor.color());
+        buf.writeInt(lowEndTextOutlineColor.color());
+        buf.writeInt(highEndTextOutlineColor.color());
+
+        buf.writeDouble(centerTextScale);
+        buf.writeDouble(lowEndTextScale);
+        buf.writeDouble(highEndTextScale);
 
         ByteBufUtils.writeUTF8String(buf, min);
         ByteBufUtils.writeUTF8String(buf, current);
@@ -280,10 +324,17 @@ public class CBarElement extends CHUDElement
         lowEndText = ByteBufUtils.readUTF8String(buf);
         highEndText = ByteBufUtils.readUTF8String(buf);
 
-        textColor = new Color(buf.readInt());
-        textOutlineColor = new Color(buf.readInt());
+        centerTextColor = new Color(buf.readInt());
+        lowEndTextColor = new Color(buf.readInt());
+        highEndTextColor = new Color(buf.readInt());
 
-        textScale = buf.readDouble();
+        centerTextOutlineColor = new Color(buf.readInt());
+        lowEndTextOutlineColor = new Color(buf.readInt());
+        highEndTextOutlineColor = new Color(buf.readInt());
+
+        centerTextScale = buf.readDouble();
+        lowEndTextScale = buf.readDouble();
+        highEndTextScale = buf.readDouble();
 
         min = ByteBufUtils.readUTF8String(buf);
         current = ByteBufUtils.readUTF8String(buf);
@@ -309,9 +360,11 @@ public class CBarElement extends CHUDElement
 
         cs.set(centerText).save(stream).set(lowEndText).save(stream).set(highEndText).save(stream);
 
-        ci.set(textColor.color()).save(stream).set(textOutlineColor.color()).save(stream);
+        ci.set(centerTextColor.color()).save(stream).set(lowEndTextColor.color()).save(stream).set(highEndTextColor.color()).save(stream);
 
-        cd.set(textScale).save(stream);
+        ci.set(centerTextOutlineColor.color()).save(stream).set(lowEndTextOutlineColor.color()).save(stream).set(highEndTextOutlineColor.color()).save(stream);
+
+        cd.set(centerTextScale).save(stream).set(lowEndTextScale).save(stream).set(highEndTextScale).save(stream);
 
         cs.set(min).save(stream).set(current).save(stream).set(max).save(stream);
 
@@ -347,10 +400,17 @@ public class CBarElement extends CHUDElement
         lowEndText = cs.load(stream).value;
         highEndText = cs.load(stream).value;
 
-        textColor = new Color(ci.load(stream).value);
-        textOutlineColor = new Color(ci.load(stream).value);
+        centerTextColor = new Color(ci.load(stream).value);
+        lowEndTextColor = new Color(ci.load(stream).value);
+        highEndTextColor = new Color(ci.load(stream).value);
 
-        textScale = cd.load(stream).value;
+        centerTextOutlineColor = new Color(ci.load(stream).value);
+        lowEndTextOutlineColor = new Color(ci.load(stream).value);
+        highEndTextOutlineColor = new Color(ci.load(stream).value);
+
+        centerTextScale = cd.load(stream).value;
+        lowEndTextScale = cd.load(stream).value;
+        highEndTextScale = cd.load(stream).value;
 
         min = cs.load(stream).value;
         current = cs.load(stream).value;
