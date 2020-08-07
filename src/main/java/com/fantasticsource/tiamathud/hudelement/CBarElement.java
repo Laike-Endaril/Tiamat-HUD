@@ -1,6 +1,13 @@
 package com.fantasticsource.tiamathud.hudelement;
 
 import com.fantasticsource.mctools.MCTools;
+import com.fantasticsource.mctools.gui.GUIScreen;
+import com.fantasticsource.mctools.gui.element.GUIElement;
+import com.fantasticsource.mctools.gui.element.other.GUIDarkenedBackground;
+import com.fantasticsource.mctools.gui.element.text.*;
+import com.fantasticsource.mctools.gui.element.text.filter.*;
+import com.fantasticsource.mctools.gui.screen.ColorSelectionGUI;
+import com.fantasticsource.mctools.gui.screen.TextSelectionGUI;
 import com.fantasticsource.tools.PNG;
 import com.fantasticsource.tools.component.CDouble;
 import com.fantasticsource.tools.component.CInt;
@@ -40,14 +47,20 @@ public class CBarElement extends CHUDElement
             DIRECTION_RIGHT_TO_LEFT = 2,
             DIRECTION_TOP_TO_BOTTOM = 3;
 
-    public static final LinkedHashMap<String, Integer> DIRECTIONS = new LinkedHashMap<>();
+    public static final LinkedHashMap<String, Integer> DIRECTIONS_S_I = new LinkedHashMap<>();
+    public static final LinkedHashMap<Integer, String> DIRECTIONS_I_S = new LinkedHashMap<>();
 
     static
     {
-        DIRECTIONS.put("Left to right", DIRECTION_LEFT_TO_RIGHT);
-        DIRECTIONS.put("Bottom to top", DIRECTION_BOTTOM_TO_TOP);
-        DIRECTIONS.put("Right to left", DIRECTION_RIGHT_TO_LEFT);
-        DIRECTIONS.put("Top to bottom", DIRECTION_TOP_TO_BOTTOM);
+        DIRECTIONS_S_I.put("Left to right", DIRECTION_LEFT_TO_RIGHT);
+        DIRECTIONS_S_I.put("Bottom to top", DIRECTION_BOTTOM_TO_TOP);
+        DIRECTIONS_S_I.put("Right to left", DIRECTION_RIGHT_TO_LEFT);
+        DIRECTIONS_S_I.put("Top to bottom", DIRECTION_TOP_TO_BOTTOM);
+
+        DIRECTIONS_I_S.put(DIRECTION_LEFT_TO_RIGHT, "Left to right");
+        DIRECTIONS_I_S.put(DIRECTION_BOTTOM_TO_TOP, "Bottom to top");
+        DIRECTIONS_I_S.put(DIRECTION_RIGHT_TO_LEFT, "Right to left");
+        DIRECTIONS_I_S.put(DIRECTION_TOP_TO_BOTTOM, "Top to bottom");
     }
 
 
@@ -106,7 +119,7 @@ public class CBarElement extends CHUDElement
 
 
     @Override
-    protected void draw()
+    protected void draw() //Render
     {
         if (fillPNG == null)
         {
@@ -161,20 +174,83 @@ public class CBarElement extends CHUDElement
         //Fill
         if (fillPNG != null && fillColor.af() > 0)
         {
-            textureManager.bindTexture(fillRL);
-            GlStateManager.color(fillColor.rf(), fillColor.gf(), fillColor.bf(), fillColor.af());
+            Double min = null, current = null, max = null;
+            try
+            {
+                min = Double.parseDouble(this.min);
+            }
+            catch (NumberFormatException e)
+            {
+                min = MCTools.getAttribute(Minecraft.getMinecraft().player, this.min);
+            }
+            if (min == null) min = parseVal(this.min);
 
-            int halfW = fillPNG.getWidth() >>> 1, halfH = fillPNG.getHeight() >>> 1;
-            GlStateManager.glBegin(GL_QUADS);
-            GlStateManager.glTexCoord2f(0, 0);
-            GlStateManager.glVertex3f(-halfW, -halfH, 0);
-            GlStateManager.glTexCoord2f(0, 1);
-            GlStateManager.glVertex3f(-halfW, halfH, 0);
-            GlStateManager.glTexCoord2f(1, 1);
-            GlStateManager.glVertex3f(halfW, halfH, 0);
-            GlStateManager.glTexCoord2f(1, 0);
-            GlStateManager.glVertex3f(halfW, -halfH, 0);
-            GlStateManager.glEnd();
+            current = parseVal(this.current);
+            if (current == null)
+            {
+                try
+                {
+                    current = Double.parseDouble(this.min);
+                }
+                catch (NumberFormatException e)
+                {
+                    current = MCTools.getAttribute(Minecraft.getMinecraft().player, this.min);
+                }
+            }
+
+            max = MCTools.getAttribute(Minecraft.getMinecraft().player, this.max);
+            if (max == null)
+            {
+                try
+                {
+                    max = Double.parseDouble(this.max);
+                }
+                catch (NumberFormatException e)
+                {
+                }
+            }
+            if (max == null) max = parseVal(this.max);
+
+
+            if (min != null && current != null && max != null && max - min != 0 && current <= max)
+            {
+                float fillPercent = (float) ((current - min) / (max - min));
+
+                textureManager.bindTexture(fillRL);
+                GlStateManager.color(fillColor.rf(), fillColor.gf(), fillColor.bf(), fillColor.af());
+
+                int w = fillPNG.getWidth(), h = fillPNG.getHeight();
+                int halfW = w >>> 1, halfH = h >>> 1;
+
+                switch (direction)
+                {
+                    case DIRECTION_LEFT_TO_RIGHT:
+                    case DIRECTION_BOTTOM_TO_TOP:
+                        GlStateManager.glBegin(GL_QUADS);
+                        GlStateManager.glTexCoord2f(0, 0);
+                        GlStateManager.glVertex3f(-halfW, -halfH, 0);
+                        GlStateManager.glTexCoord2f(0, 1);
+                        GlStateManager.glVertex3f(-halfW, halfH, 0);
+                        GlStateManager.glTexCoord2f(fillPercent, 1);
+                        GlStateManager.glVertex3f(-halfW + w * fillPercent, halfH, 0);
+                        GlStateManager.glTexCoord2f(fillPercent, 0);
+                        GlStateManager.glVertex3f(-halfW + w * fillPercent, -halfH, 0);
+                        GlStateManager.glEnd();
+                        break;
+
+                    default:
+                        GlStateManager.glBegin(GL_QUADS);
+                        GlStateManager.glTexCoord2f(1 - fillPercent, 0);
+                        GlStateManager.glVertex3f(halfW - w * fillPercent, -halfH, 0);
+                        GlStateManager.glTexCoord2f(1 - fillPercent, 1);
+                        GlStateManager.glVertex3f(halfW - w * fillPercent, halfH, 0);
+                        GlStateManager.glTexCoord2f(1, 1);
+                        GlStateManager.glVertex3f(halfW, halfH, 0);
+                        GlStateManager.glTexCoord2f(1, 0);
+                        GlStateManager.glVertex3f(halfW, -halfH, 0);
+                        GlStateManager.glEnd();
+                }
+            }
         }
 
         //Foreground
@@ -252,6 +328,26 @@ public class CBarElement extends CHUDElement
 
 
         GlStateManager.popMatrix();
+    }
+
+
+    protected Double parseVal(String s)
+    {
+        switch (s.toLowerCase())
+        {
+            case "health":
+                return (double) Minecraft.getMinecraft().player.getHealth();
+
+            default:
+                return null;
+        }
+    }
+
+
+    @Override
+    public void showEditingGUI(String name)
+    {
+        new BarEditingGUI(this, name).showStacked();
     }
 
 
@@ -417,5 +513,197 @@ public class CBarElement extends CHUDElement
         max = cs.load(stream).value;
 
         return this;
+    }
+
+
+    public static class BarEditingGUI extends GUIScreen
+    {
+        protected String name = "";
+
+        public BarEditingGUI(CBarElement element, String name)
+        {
+            //Background
+            root.add(new GUIDarkenedBackground(this));
+
+
+            //Header
+            GUINavbar navbar = new GUINavbar(this);
+            root.add(navbar);
+
+
+            GUILabeledBoolean enabled = new GUILabeledBoolean(this, "Enabled: ", element.enabled);
+
+            GUILabeledTextInput x = new GUILabeledTextInput(this, "X: ", "" + element.x, FilterInt.INSTANCE);
+            GUILabeledTextInput y = new GUILabeledTextInput(this, "Y: ", "" + element.y, FilterInt.INSTANCE);
+
+            GUILabeledTextInput hScale = new GUILabeledTextInput(this, "Horizontal Scaling: ", "" + element.hScale, FilterFloat.INSTANCE);
+            GUILabeledTextInput vScale = new GUILabeledTextInput(this, "Vertical Scaling: ", "" + element.vScale, FilterFloat.INSTANCE);
+
+            GUIText directionLabel = new GUIText(this, "Direction: ");
+            GUIText direction = new GUIText(this, DIRECTIONS_I_S.get(element.direction));
+            directionLabel.linkMouseActivity(direction);
+            direction.linkMouseActivity(directionLabel);
+
+            GUILabeledTextInput backRL = new GUILabeledTextInput(this, "Background Texture: ", element.backRL.toString(), FilterResourceLocation.INSTANCE);
+            GUILabeledTextInput fillRL = new GUILabeledTextInput(this, "Fill Texture: ", element.fillRL.toString(), FilterResourceLocation.INSTANCE);
+            GUILabeledTextInput foreRL = new GUILabeledTextInput(this, "Foreground Texture: ", element.foreRL.toString(), FilterResourceLocation.INSTANCE);
+
+            GUIColor backColor = new GUIColor(this, element.backColor);
+            GUIColor fillColor = new GUIColor(this, element.fillColor);
+            GUIColor foreColor = new GUIColor(this, element.foreColor);
+
+            GUILabeledTextInput centerText = new GUILabeledTextInput(this, "Center Text: ", element.centerText, FilterNone.INSTANCE);
+            GUILabeledTextInput lowEndText = new GUILabeledTextInput(this, "Low-End Text: ", element.lowEndText, FilterNone.INSTANCE);
+            GUILabeledTextInput highEndText = new GUILabeledTextInput(this, "High-End Text: ", element.highEndText, FilterNone.INSTANCE);
+
+            GUIColor centerTextColor = new GUIColor(this, element.centerTextColor);
+            GUIColor lowEndTextColor = new GUIColor(this, element.lowEndTextColor);
+            GUIColor highEndTextColor = new GUIColor(this, element.highEndTextColor);
+
+            GUIColor centerTextOutlineColor = new GUIColor(this, element.centerTextOutlineColor);
+            GUIColor lowEndTextOutlineColor = new GUIColor(this, element.lowEndTextOutlineColor);
+            GUIColor highEndTextOutlineColor = new GUIColor(this, element.highEndTextOutlineColor);
+
+            GUILabeledTextInput centerTextScale = new GUILabeledTextInput(this, "Center Text Scale: ", "" + element.centerTextScale, FilterFloat.INSTANCE);
+            GUILabeledTextInput lowEndTextScale = new GUILabeledTextInput(this, "Low-End Text Scale: ", "" + element.lowEndTextScale, FilterFloat.INSTANCE);
+            GUILabeledTextInput highEndTextScale = new GUILabeledTextInput(this, "High-End Text Scale: ", "" + element.highEndTextScale, FilterFloat.INSTANCE);
+
+            GUILabeledTextInput min = new GUILabeledTextInput(this, "Minimum Value: ", element.min, FilterNotEmpty.INSTANCE);
+            GUILabeledTextInput current = new GUILabeledTextInput(this, "Fill Value: ", element.current, FilterNotEmpty.INSTANCE);
+            GUILabeledTextInput max = new GUILabeledTextInput(this, "Maximum Value: ", element.max, FilterNotEmpty.INSTANCE);
+
+
+            root.addAll(
+                    enabled.addClickActions(() -> element.enabled = enabled.getValue()),
+
+                    new GUIElement(this, 1, 0),
+                    new GUIElement(this, 1, 0),
+                    x.addEditActions(() ->
+                    {
+                        if (x.valid()) element.x = FilterInt.INSTANCE.parse(x.getText());
+                    }),
+                    new GUIElement(this, 1, 0),
+                    y.addEditActions(() ->
+                    {
+                        if (y.valid()) element.y = FilterInt.INSTANCE.parse(y.getText());
+                    }),
+
+                    new GUIElement(this, 1, 0),
+                    new GUIElement(this, 1, 0),
+                    hScale.addEditActions(() ->
+                    {
+                        if (hScale.valid()) element.hScale = FilterFloat.INSTANCE.parse(hScale.getText());
+                    }),
+                    new GUIElement(this, 1, 0),
+                    vScale.addEditActions(() ->
+                    {
+                        if (vScale.valid()) element.vScale = FilterFloat.INSTANCE.parse(vScale.getText());
+                    }),
+
+                    new GUIElement(this, 1, 0),
+                    new GUIElement(this, 1, 0),
+                    directionLabel.addClickActions(direction::click),
+                    direction.addClickActions(() -> new TextSelectionGUI(direction, "Direction", DIRECTIONS_S_I.keySet().toArray(new String[0]))),
+
+                    new GUIElement(this, 1, 0),
+                    new GUIElement(this, 1, 0),
+                    backRL.addEditActions(() ->
+                    {
+                        if (backRL.valid()) element.backRL = FilterResourceLocation.INSTANCE.parse(backRL.getText());
+                    }),
+                    new GUIElement(this, 1, 0),
+                    fillRL.addEditActions(() ->
+                    {
+                        if (fillRL.valid()) element.fillRL = FilterResourceLocation.INSTANCE.parse(fillRL.getText());
+                    }),
+                    new GUIElement(this, 1, 0),
+                    foreRL.addEditActions(() ->
+                    {
+                        if (foreRL.valid()) element.foreRL = FilterResourceLocation.INSTANCE.parse(foreRL.getText());
+                    }),
+
+                    new GUIElement(this, 1, 0),
+                    new GUIElement(this, 1, 0),
+                    new GUIText(this, "Background Color: "),
+                    backColor.addClickActions(() -> new ColorSelectionGUI(backColor).addOnClosedActions(() -> element.backColor = backColor.getValue())),
+                    new GUIElement(this, 1, 0),
+                    new GUIText(this, "Fill Color: "),
+                    fillColor.addClickActions(() -> new ColorSelectionGUI(fillColor).addOnClosedActions(() -> element.fillColor = fillColor.getValue())),
+                    new GUIElement(this, 1, 0),
+                    new GUIText(this, "Foreground Color: "),
+                    foreColor.addClickActions(() -> new ColorSelectionGUI(foreColor).addOnClosedActions(() -> element.foreColor = foreColor.getValue())),
+
+                    new GUIElement(this, 1, 0),
+                    new GUIElement(this, 1, 0),
+                    centerText.addEditActions(() -> element.centerText = centerText.getText()),
+                    new GUIElement(this, 1, 0),
+                    lowEndText.addEditActions(() -> element.lowEndText = lowEndText.getText()),
+                    new GUIElement(this, 1, 0),
+                    highEndText.addEditActions(() -> element.highEndText = highEndText.getText()),
+
+                    new GUIElement(this, 1, 0),
+                    new GUIElement(this, 1, 0),
+                    new GUIText(this, "Center Text Color: "),
+                    centerTextColor.addClickActions(() -> new ColorSelectionGUI(centerTextColor).addOnClosedActions(() -> element.centerTextColor = centerTextColor.getValue())),
+                    new GUIElement(this, 1, 0),
+                    new GUIText(this, "Low-End Text Color: "),
+                    lowEndTextColor.addClickActions(() -> new ColorSelectionGUI(lowEndTextColor).addOnClosedActions(() -> element.lowEndTextColor = lowEndTextColor.getValue())),
+                    new GUIElement(this, 1, 0),
+                    new GUIText(this, "High-End Text Color: "),
+                    highEndTextColor.addClickActions(() -> new ColorSelectionGUI(highEndTextColor).addOnClosedActions(() -> element.highEndTextColor = highEndTextColor.getValue())),
+
+                    new GUIElement(this, 1, 0),
+                    new GUIElement(this, 1, 0),
+                    new GUIText(this, "Center Text Color: "),
+                    centerTextOutlineColor.addClickActions(() -> new ColorSelectionGUI(centerTextOutlineColor).addOnClosedActions(() -> element.centerTextOutlineColor = centerTextOutlineColor.getValue())),
+                    new GUIElement(this, 1, 0),
+                    new GUIText(this, "Low-End Text Color: "),
+                    lowEndTextOutlineColor.addClickActions(() -> new ColorSelectionGUI(lowEndTextOutlineColor).addOnClosedActions(() -> element.lowEndTextOutlineColor = lowEndTextOutlineColor.getValue())),
+                    new GUIElement(this, 1, 0),
+                    new GUIText(this, "High-End Text Color: "),
+                    highEndTextOutlineColor.addClickActions(() -> new ColorSelectionGUI(highEndTextOutlineColor).addOnClosedActions(() -> element.highEndTextOutlineColor = highEndTextOutlineColor.getValue())),
+
+                    new GUIElement(this, 1, 0),
+                    new GUIElement(this, 1, 0),
+                    centerTextScale.addEditActions(() ->
+                    {
+                        if (centerTextScale.valid()) element.centerTextScale = FilterFloat.INSTANCE.parse(centerTextScale.getText());
+                    }),
+                    new GUIElement(this, 1, 0),
+                    lowEndTextScale.addEditActions(() ->
+                    {
+                        if (lowEndTextScale.valid()) element.lowEndTextScale = FilterFloat.INSTANCE.parse(lowEndTextScale.getText());
+                    }),
+                    new GUIElement(this, 1, 0),
+                    highEndTextScale.addEditActions(() ->
+                    {
+                        if (highEndTextScale.valid()) element.highEndTextScale = FilterFloat.INSTANCE.parse(highEndTextScale.getText());
+                    }),
+
+                    new GUIElement(this, 1, 0),
+                    new GUIElement(this, 1, 0),
+                    min.addEditActions(() ->
+                    {
+                        if (min.valid()) element.min = min.getText();
+                    }),
+                    new GUIElement(this, 1, 0),
+                    current.addEditActions(() ->
+                    {
+                        if (current.valid()) element.current = current.getText();
+                    }),
+                    new GUIElement(this, 1, 0),
+                    max.addEditActions(() ->
+                    {
+                        if (max.valid()) element.max = max.getText();
+                    })
+            );
+
+        }
+
+        @Override
+        public String title()
+        {
+            return name + " (Bar)";
+        }
     }
 }

@@ -39,15 +39,17 @@ public class HUDEditingGUI extends GUIScreen
             @Override
             public GUIElement[] newLineDefaultElements()
             {
+                GUIButton editButton = GUIButton.newEditButton(screen);
+                GUILabeledTextInput name = new GUILabeledTextInput(screen, "Name: ", "HUD Element", FilterNone.INSTANCE);
                 GUIText typeLabel = new GUIText(screen, "Type: ", getIdleColor(Color.WHITE), getHoverColor(Color.WHITE), Color.WHITE);
                 GUIText type = new GUIText(screen, CHUDElement.TYPE_TO_CLASS.keySet().iterator().next(), getIdleColor(Color.WHITE), getHoverColor(Color.WHITE), Color.WHITE);
                 typeLabel.linkMouseActivity(type);
                 type.linkMouseActivity(typeLabel);
 
                 return new GUIElement[]{
-                        GUIButton.newEditButton(screen),
+                        editButton.addClickActions(() -> editButtonToHUDElement.get(editButton).showEditingGUI(name.getText())),
                         new GUIElement(screen, 1, 0),
-                        new GUILabeledTextInput(screen, "Name: ", "HUD Element", FilterNone.INSTANCE),
+                        name,
                         new GUIElement(screen, 1, 0),
                         typeLabel.addClickActions(type::click),
                         type.addClickActions(() -> new TextSelectionGUI(type, "Select Type", CHUDElement.TYPE_TO_CLASS.keySet().toArray(new String[0])))

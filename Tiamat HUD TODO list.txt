@@ -1,6 +1,3 @@
-Sub-GUI for edit button, depending on element type
-
-
 Options for whether each vanilla element is rendered
 
 
