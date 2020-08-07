@@ -1,6 +1,7 @@
 package com.fantasticsource.tiamathud.hudelement;
 
 import com.fantasticsource.mctools.MCTools;
+import com.fantasticsource.mctools.OutlinedFontRenderer;
 import com.fantasticsource.mctools.gui.GUIScreen;
 import com.fantasticsource.mctools.gui.element.GUIElement;
 import com.fantasticsource.mctools.gui.element.other.GUIDarkenedBackground;
@@ -74,10 +75,9 @@ public class CBarElement extends CHUDElement
     protected PNG backPNG = DEFAULT_BACK_PNG, fillPNG = DEFAULT_FILL_PNG, forePNG = DEFAULT_FORE_PNG;
     public Color backColor = Color.WHITE, fillColor = Color.GREEN, foreColor = Color.WHITE;
 
-    public String centerText = "current", lowEndText = "", highEndText = "";
-    public Color centerTextColor = Color.BLACK, lowEndTextColor = Color.BLACK, highEndTextColor = Color.BLACK;
-    public Color centerTextOutlineColor = Color.WHITE, lowEndTextOutlineColor = Color.WHITE, highEndTextOutlineColor = Color.WHITE;
-    public double centerTextScale = 1, lowEndTextScale = 1, highEndTextScale = 1;
+    public String text = "current/max";
+    public Color textColor = Color.WHITE, textOutlineColor = Color.BLACK;
+    public double textScale = 1;
 
     public String min = "0", current = "health", max = "generic.maxHealth";
 
@@ -141,12 +141,48 @@ public class CBarElement extends CHUDElement
         TextureManager textureManager = mc.getTextureManager();
 
 
+        GlStateManager.pushMatrix();
         GlStateManager.scale(hScale, vScale, 1);
-        if (direction == DIRECTION_TOP_TO_BOTTOM || direction == DIRECTION_BOTTOM_TO_TOP)
+        if (direction == DIRECTION_TOP_TO_BOTTOM || direction == DIRECTION_BOTTOM_TO_TOP) GlStateManager.rotate(90, 0, 0, -1);
+
+
+        //Min, current, and max value computation
+        Double min, current, max;
+        try
         {
-            GlStateManager.pushMatrix();
-            GlStateManager.rotate(90, 0, 0, -1);
+            min = Double.parseDouble(this.min);
         }
+        catch (NumberFormatException e)
+        {
+            min = MCTools.getAttribute(Minecraft.getMinecraft().player, this.min);
+        }
+        if (min == null) min = parseVal(this.min);
+
+        current = parseVal(this.current);
+        if (current == null)
+        {
+            try
+            {
+                current = Double.parseDouble(this.current);
+            }
+            catch (NumberFormatException e)
+            {
+                current = MCTools.getAttribute(Minecraft.getMinecraft().player, this.current);
+            }
+        }
+
+        max = MCTools.getAttribute(Minecraft.getMinecraft().player, this.max);
+        if (max == null)
+        {
+            try
+            {
+                max = Double.parseDouble(this.max);
+            }
+            catch (NumberFormatException e)
+            {
+            }
+        }
+        if (max == null) max = parseVal(this.max);
 
 
         //Background
@@ -157,7 +193,6 @@ public class CBarElement extends CHUDElement
 
             int halfW = backPNG.getWidth() >>> 1, halfH = backPNG.getHeight() >>> 1;
             GlStateManager.glBegin(GL_QUADS);
-            //TODO check this and similar rendering for any issues along borders.  If any show, may need half-pixel UV offsets
             GlStateManager.glTexCoord2f(0, 0);
             GlStateManager.glVertex3f(-halfW, -halfH, 0);
             GlStateManager.glTexCoord2f(0, 1);
@@ -170,84 +205,43 @@ public class CBarElement extends CHUDElement
         }
 
         //Fill
-        if (fillPNG != null && fillColor.af() > 0)
+        if (fillPNG != null && fillColor.af() > 0 && min != null && current != null && max != null && max - min != 0 && current <= max)
         {
-            Double min, current, max;
-            try
+            float fillPercent = (float) ((current - min) / (max - min));
+
+            textureManager.bindTexture(fillRL);
+            GlStateManager.color(fillColor.rf(), fillColor.gf(), fillColor.bf(), fillColor.af());
+
+            int w = fillPNG.getWidth(), h = fillPNG.getHeight();
+            int halfW = w >>> 1, halfH = h >>> 1;
+
+            switch (direction)
             {
-                min = Double.parseDouble(this.min);
-            }
-            catch (NumberFormatException e)
-            {
-                min = MCTools.getAttribute(Minecraft.getMinecraft().player, this.min);
-            }
-            if (min == null) min = parseVal(this.min);
+                case DIRECTION_LEFT_TO_RIGHT:
+                case DIRECTION_BOTTOM_TO_TOP:
+                    GlStateManager.glBegin(GL_QUADS);
+                    GlStateManager.glTexCoord2f(0, 0);
+                    GlStateManager.glVertex3f(-halfW, -halfH, 0);
+                    GlStateManager.glTexCoord2f(0, 1);
+                    GlStateManager.glVertex3f(-halfW, halfH, 0);
+                    GlStateManager.glTexCoord2f(fillPercent, 1);
+                    GlStateManager.glVertex3f(-halfW + w * fillPercent, halfH, 0);
+                    GlStateManager.glTexCoord2f(fillPercent, 0);
+                    GlStateManager.glVertex3f(-halfW + w * fillPercent, -halfH, 0);
+                    GlStateManager.glEnd();
+                    break;
 
-            current = parseVal(this.current);
-            if (current == null)
-            {
-                try
-                {
-                    current = Double.parseDouble(this.current);
-                }
-                catch (NumberFormatException e)
-                {
-                    current = MCTools.getAttribute(Minecraft.getMinecraft().player, this.current);
-                }
-            }
-
-            max = MCTools.getAttribute(Minecraft.getMinecraft().player, this.max);
-            if (max == null)
-            {
-                try
-                {
-                    max = Double.parseDouble(this.max);
-                }
-                catch (NumberFormatException e)
-                {
-                }
-            }
-            if (max == null) max = parseVal(this.max);
-
-
-            if (min != null && current != null && max != null && max - min != 0 && current <= max)
-            {
-                float fillPercent = (float) ((current - min) / (max - min));
-
-                textureManager.bindTexture(fillRL);
-                GlStateManager.color(fillColor.rf(), fillColor.gf(), fillColor.bf(), fillColor.af());
-
-                int w = fillPNG.getWidth(), h = fillPNG.getHeight();
-                int halfW = w >>> 1, halfH = h >>> 1;
-
-                switch (direction)
-                {
-                    case DIRECTION_LEFT_TO_RIGHT:
-                    case DIRECTION_BOTTOM_TO_TOP:
-                        GlStateManager.glBegin(GL_QUADS);
-                        GlStateManager.glTexCoord2f(0, 0);
-                        GlStateManager.glVertex3f(-halfW, -halfH, 0);
-                        GlStateManager.glTexCoord2f(0, 1);
-                        GlStateManager.glVertex3f(-halfW, halfH, 0);
-                        GlStateManager.glTexCoord2f(fillPercent, 1);
-                        GlStateManager.glVertex3f(-halfW + w * fillPercent, halfH, 0);
-                        GlStateManager.glTexCoord2f(fillPercent, 0);
-                        GlStateManager.glVertex3f(-halfW + w * fillPercent, -halfH, 0);
-                        GlStateManager.glEnd();
-                        break;
-
-                    default:
-                        GlStateManager.glBegin(GL_QUADS);
-                        GlStateManager.glTexCoord2f(1 - fillPercent, 0);
-                        GlStateManager.glVertex3f(halfW - w * fillPercent, -halfH, 0);
-                        GlStateManager.glTexCoord2f(1 - fillPercent, 1);
-                        GlStateManager.glVertex3f(halfW - w * fillPercent, halfH, 0);
-                        GlStateManager.glTexCoord2f(1, 1);
-                        GlStateManager.glVertex3f(halfW, halfH, 0);
-                        GlStateManager.glTexCoord2f(1, 0);
-                        GlStateManager.glVertex3f(halfW, -halfH, 0);
-                        GlStateManager.glEnd();
-                }
+                default:
+                    GlStateManager.glBegin(GL_QUADS);
+                    GlStateManager.glTexCoord2f(1 - fillPercent, 0);
+                    GlStateManager.glVertex3f(halfW - w * fillPercent, -halfH, 0);
+                    GlStateManager.glTexCoord2f(1 - fillPercent, 1);
+                    GlStateManager.glVertex3f(halfW - w * fillPercent, halfH, 0);
+                    GlStateManager.glTexCoord2f(1, 1);
+                    GlStateManager.glVertex3f(halfW, halfH, 0);
+                    GlStateManager.glTexCoord2f(1, 0);
+                    GlStateManager.glVertex3f(halfW, -halfH, 0);
+                    GlStateManager.glEnd();
             }
         }
 
@@ -270,58 +264,16 @@ public class CBarElement extends CHUDElement
             GlStateManager.glEnd();
         }
 
-        //Reset rotation if necessary
-        if (direction == DIRECTION_TOP_TO_BOTTOM || direction == DIRECTION_BOTTOM_TO_TOP)
+
+        GlStateManager.popMatrix();
+
+
+        //Text
+        if (!text.equals("") && (textColor.af() > 0 || textOutlineColor.af() > 0))
         {
-            GlStateManager.popMatrix();
-        }
-
-        //Low-End Text
-        if (!lowEndText.equals(""))
-        {
-            //Outline
-            if (lowEndTextOutlineColor.af() > 0)
-            {
-                //TODO
-            }
-
-            //Text
-            if (lowEndTextColor.af() > 0)
-            {
-                //TODO
-            }
-        }
-
-        //High-End Text
-        if (!highEndText.equals(""))
-        {
-            //Outline
-            if (highEndTextOutlineColor.af() > 0)
-            {
-                //TODO
-            }
-
-            //Text
-            if (highEndTextColor.af() > 0)
-            {
-                //TODO
-            }
-        }
-
-        //Center Text
-        if (!centerText.equals(""))
-        {
-            //Outline
-            if (centerTextOutlineColor.af() > 0)
-            {
-                //TODO
-            }
-
-            //Text
-            if (centerTextColor.af() > 0)
-            {
-                //TODO
-            }
+            GlStateManager.scale(textScale, textScale, 1);
+            String text = this.text.replaceAll("[mM][iI][nN]", min == null ? "null" : String.format("%.1f", min)).replaceAll("[cC][uU][rR][rR][eE][nN][tT]", current == null ? "null" : String.format("%.1f", current)).replaceAll("[mM][aA][xX]", max == null ? "null" : String.format("%.1f", max));
+            OutlinedFontRenderer.draw(text, -(OutlinedFontRenderer.getStringWidth(text) >>> 1), -(OutlinedFontRenderer.LINE_HEIGHT >>> 1), textColor, textOutlineColor);
         }
     }
 
@@ -364,21 +316,10 @@ public class CBarElement extends CHUDElement
         buf.writeInt(fillColor.color());
         buf.writeInt(foreColor.color());
 
-        ByteBufUtils.writeUTF8String(buf, centerText);
-        ByteBufUtils.writeUTF8String(buf, lowEndText);
-        ByteBufUtils.writeUTF8String(buf, highEndText);
-
-        buf.writeInt(centerTextColor.color());
-        buf.writeInt(lowEndTextColor.color());
-        buf.writeInt(highEndTextColor.color());
-
-        buf.writeInt(centerTextOutlineColor.color());
-        buf.writeInt(lowEndTextOutlineColor.color());
-        buf.writeInt(highEndTextOutlineColor.color());
-
-        buf.writeDouble(centerTextScale);
-        buf.writeDouble(lowEndTextScale);
-        buf.writeDouble(highEndTextScale);
+        ByteBufUtils.writeUTF8String(buf, text);
+        buf.writeInt(textColor.color());
+        buf.writeInt(textOutlineColor.color());
+        buf.writeDouble(textScale);
 
         ByteBufUtils.writeUTF8String(buf, min);
         ByteBufUtils.writeUTF8String(buf, current);
@@ -408,21 +349,10 @@ public class CBarElement extends CHUDElement
         fillColor = new Color(buf.readInt());
         foreColor = new Color(buf.readInt());
 
-        centerText = ByteBufUtils.readUTF8String(buf);
-        lowEndText = ByteBufUtils.readUTF8String(buf);
-        highEndText = ByteBufUtils.readUTF8String(buf);
-
-        centerTextColor = new Color(buf.readInt());
-        lowEndTextColor = new Color(buf.readInt());
-        highEndTextColor = new Color(buf.readInt());
-
-        centerTextOutlineColor = new Color(buf.readInt());
-        lowEndTextOutlineColor = new Color(buf.readInt());
-        highEndTextOutlineColor = new Color(buf.readInt());
-
-        centerTextScale = buf.readDouble();
-        lowEndTextScale = buf.readDouble();
-        highEndTextScale = buf.readDouble();
+        text = ByteBufUtils.readUTF8String(buf);
+        textColor = new Color(buf.readInt());
+        textOutlineColor = new Color(buf.readInt());
+        textScale = buf.readDouble();
 
         min = ByteBufUtils.readUTF8String(buf);
         current = ByteBufUtils.readUTF8String(buf);
@@ -444,13 +374,10 @@ public class CBarElement extends CHUDElement
 
         ci.set(backColor.color()).save(stream).set(fillColor.color()).save(stream).set(foreColor.color()).save(stream);
 
-        cs.set(centerText).save(stream).set(lowEndText).save(stream).set(highEndText).save(stream);
-
-        ci.set(centerTextColor.color()).save(stream).set(lowEndTextColor.color()).save(stream).set(highEndTextColor.color()).save(stream);
-
-        ci.set(centerTextOutlineColor.color()).save(stream).set(lowEndTextOutlineColor.color()).save(stream).set(highEndTextOutlineColor.color()).save(stream);
-
-        cd.set(centerTextScale).save(stream).set(lowEndTextScale).save(stream).set(highEndTextScale).save(stream);
+        cs.set(text).save(stream);
+        ci.set(textColor.color()).save(stream);
+        ci.set(textOutlineColor.color()).save(stream);
+        cd.set(textScale).save(stream);
 
         cs.set(min).save(stream).set(current).save(stream).set(max).save(stream);
 
@@ -482,21 +409,10 @@ public class CBarElement extends CHUDElement
         fillColor = new Color(ci.load(stream).value);
         foreColor = new Color(ci.load(stream).value);
 
-        centerText = cs.load(stream).value;
-        lowEndText = cs.load(stream).value;
-        highEndText = cs.load(stream).value;
-
-        centerTextColor = new Color(ci.load(stream).value);
-        lowEndTextColor = new Color(ci.load(stream).value);
-        highEndTextColor = new Color(ci.load(stream).value);
-
-        centerTextOutlineColor = new Color(ci.load(stream).value);
-        lowEndTextOutlineColor = new Color(ci.load(stream).value);
-        highEndTextOutlineColor = new Color(ci.load(stream).value);
-
-        centerTextScale = cd.load(stream).value;
-        lowEndTextScale = cd.load(stream).value;
-        highEndTextScale = cd.load(stream).value;
+        text = cs.load(stream).value;
+        textColor = new Color(ci.load(stream).value);
+        textOutlineColor = new Color(ci.load(stream).value);
+        textScale = cd.load(stream).value;
 
         min = cs.load(stream).value;
         current = cs.load(stream).value;
@@ -562,21 +478,10 @@ public class CBarElement extends CHUDElement
             GUIColor fillColor = new GUIColor(this, element.fillColor);
             GUIColor foreColor = new GUIColor(this, element.foreColor);
 
-            GUILabeledTextInput centerText = new GUILabeledTextInput(this, "Center Text: ", element.centerText, FilterNone.INSTANCE);
-            GUILabeledTextInput lowEndText = new GUILabeledTextInput(this, "Low-End Text: ", element.lowEndText, FilterNone.INSTANCE);
-            GUILabeledTextInput highEndText = new GUILabeledTextInput(this, "High-End Text: ", element.highEndText, FilterNone.INSTANCE);
-
-            GUIColor centerTextColor = new GUIColor(this, element.centerTextColor);
-            GUIColor lowEndTextColor = new GUIColor(this, element.lowEndTextColor);
-            GUIColor highEndTextColor = new GUIColor(this, element.highEndTextColor);
-
-            GUIColor centerTextOutlineColor = new GUIColor(this, element.centerTextOutlineColor);
-            GUIColor lowEndTextOutlineColor = new GUIColor(this, element.lowEndTextOutlineColor);
-            GUIColor highEndTextOutlineColor = new GUIColor(this, element.highEndTextOutlineColor);
-
-            GUILabeledTextInput centerTextScale = new GUILabeledTextInput(this, "Center Text Scale: ", "" + element.centerTextScale, FilterFloat.INSTANCE);
-            GUILabeledTextInput lowEndTextScale = new GUILabeledTextInput(this, "Low-End Text Scale: ", "" + element.lowEndTextScale, FilterFloat.INSTANCE);
-            GUILabeledTextInput highEndTextScale = new GUILabeledTextInput(this, "High-End Text Scale: ", "" + element.highEndTextScale, FilterFloat.INSTANCE);
+            GUILabeledTextInput text = new GUILabeledTextInput(this, "Text: ", element.text, FilterNone.INSTANCE);
+            GUIColor textColor = new GUIColor(this, element.textColor);
+            GUIColor textOutlineColor = new GUIColor(this, element.textOutlineColor);
+            GUILabeledTextInput textScale = new GUILabeledTextInput(this, "Text Scale: ", "" + element.textScale, FilterFloat.INSTANCE);
 
             GUILabeledTextInput min = new GUILabeledTextInput(this, "Minimum Value: ", element.min, FilterNotEmpty.INSTANCE);
             GUILabeledTextInput current = new GUILabeledTextInput(this, "Fill Value: ", element.current, FilterNotEmpty.INSTANCE);
@@ -646,46 +551,17 @@ public class CBarElement extends CHUDElement
                     foreColor.addClickActions(() -> new ColorSelectionGUI(foreColor).addOnClosedActions(() -> element.foreColor = foreColor.getValue())),
 
                     new GUITextSpacer(this),
-                    centerText.addEditActions(() -> element.centerText = centerText.getText()),
+                    text.addEditActions(() -> element.text = text.getText()),
                     new GUIElement(this, 1, 0),
-                    lowEndText.addEditActions(() -> element.lowEndText = lowEndText.getText()),
+                    new GUIText(this, "Text Color: "),
+                    textColor.addClickActions(() -> new ColorSelectionGUI(textColor).addOnClosedActions(() -> element.textColor = textColor.getValue())),
                     new GUIElement(this, 1, 0),
-                    highEndText.addEditActions(() -> element.highEndText = highEndText.getText()),
-
-                    new GUITextSpacer(this),
-                    new GUIText(this, "Center Text Color: "),
-                    centerTextColor.addClickActions(() -> new ColorSelectionGUI(centerTextColor).addOnClosedActions(() -> element.centerTextColor = centerTextColor.getValue())),
+                    new GUIText(this, "Text Outline Color: "),
+                    textOutlineColor.addClickActions(() -> new ColorSelectionGUI(textOutlineColor).addOnClosedActions(() -> element.textOutlineColor = textOutlineColor.getValue())),
                     new GUIElement(this, 1, 0),
-                    new GUIText(this, "Low-End Text Color: "),
-                    lowEndTextColor.addClickActions(() -> new ColorSelectionGUI(lowEndTextColor).addOnClosedActions(() -> element.lowEndTextColor = lowEndTextColor.getValue())),
-                    new GUIElement(this, 1, 0),
-                    new GUIText(this, "High-End Text Color: "),
-                    highEndTextColor.addClickActions(() -> new ColorSelectionGUI(highEndTextColor).addOnClosedActions(() -> element.highEndTextColor = highEndTextColor.getValue())),
-
-                    new GUITextSpacer(this),
-                    new GUIText(this, "Center Text Color: "),
-                    centerTextOutlineColor.addClickActions(() -> new ColorSelectionGUI(centerTextOutlineColor).addOnClosedActions(() -> element.centerTextOutlineColor = centerTextOutlineColor.getValue())),
-                    new GUIElement(this, 1, 0),
-                    new GUIText(this, "Low-End Text Color: "),
-                    lowEndTextOutlineColor.addClickActions(() -> new ColorSelectionGUI(lowEndTextOutlineColor).addOnClosedActions(() -> element.lowEndTextOutlineColor = lowEndTextOutlineColor.getValue())),
-                    new GUIElement(this, 1, 0),
-                    new GUIText(this, "High-End Text Color: "),
-                    highEndTextOutlineColor.addClickActions(() -> new ColorSelectionGUI(highEndTextOutlineColor).addOnClosedActions(() -> element.highEndTextOutlineColor = highEndTextOutlineColor.getValue())),
-
-                    new GUITextSpacer(this),
-                    centerTextScale.addEditActions(() ->
+                    textScale.addEditActions(() ->
                     {
-                        if (centerTextScale.valid()) element.centerTextScale = FilterFloat.INSTANCE.parse(centerTextScale.getText());
-                    }),
-                    new GUIElement(this, 1, 0),
-                    lowEndTextScale.addEditActions(() ->
-                    {
-                        if (lowEndTextScale.valid()) element.lowEndTextScale = FilterFloat.INSTANCE.parse(lowEndTextScale.getText());
-                    }),
-                    new GUIElement(this, 1, 0),
-                    highEndTextScale.addEditActions(() ->
-                    {
-                        if (highEndTextScale.valid()) element.highEndTextScale = FilterFloat.INSTANCE.parse(highEndTextScale.getText());
+                        if (textScale.valid()) element.textScale = FilterFloat.INSTANCE.parse(textScale.getText());
                     }),
 
                     new GUITextSpacer(this),
