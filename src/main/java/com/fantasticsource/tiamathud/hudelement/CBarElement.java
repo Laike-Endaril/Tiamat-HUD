@@ -4,8 +4,10 @@ import com.fantasticsource.mctools.MCTools;
 import com.fantasticsource.mctools.gui.GUIScreen;
 import com.fantasticsource.mctools.gui.element.GUIElement;
 import com.fantasticsource.mctools.gui.element.other.GUIDarkenedBackground;
+import com.fantasticsource.mctools.gui.element.other.GUIVerticalScrollbar;
 import com.fantasticsource.mctools.gui.element.text.*;
 import com.fantasticsource.mctools.gui.element.text.filter.*;
+import com.fantasticsource.mctools.gui.element.view.GUIScrollView;
 import com.fantasticsource.mctools.gui.screen.ColorSelectionGUI;
 import com.fantasticsource.mctools.gui.screen.TextSelectionGUI;
 import com.fantasticsource.tools.PNG;
@@ -147,7 +149,7 @@ public class CBarElement extends CHUDElement
         if (direction == DIRECTION_TOP_TO_BOTTOM || direction == DIRECTION_BOTTOM_TO_TOP)
         {
             GlStateManager.pushMatrix();
-            GlStateManager.rotate(90, 0, 0, 1);
+            GlStateManager.rotate(90, 0, 0, -1);
         }
 
 
@@ -522,6 +524,10 @@ public class CBarElement extends CHUDElement
 
         public BarEditingGUI(CBarElement element, String name)
         {
+            this.name = name;
+            drawStack = false;
+
+
             //Background
             root.add(new GUIDarkenedBackground(this));
 
@@ -529,6 +535,11 @@ public class CBarElement extends CHUDElement
             //Header
             GUINavbar navbar = new GUINavbar(this);
             root.add(navbar);
+
+
+            GUIScrollView scrollView = new GUIScrollView(this, 0.98, 1 - navbar.height);
+            GUIVerticalScrollbar scrollbar = new GUIVerticalScrollbar(this, 0.02, 1 - navbar.height, Color.GRAY, Color.BLANK, Color.WHITE, Color.BLANK, scrollView);
+            root.addAll(scrollView, scrollbar);
 
 
             GUILabeledBoolean enabled = new GUILabeledBoolean(this, "Enabled: ", element.enabled);
@@ -573,11 +584,10 @@ public class CBarElement extends CHUDElement
             GUILabeledTextInput max = new GUILabeledTextInput(this, "Maximum Value: ", element.max, FilterNotEmpty.INSTANCE);
 
 
-            root.addAll(
+            scrollView.addAll(
                     enabled.addClickActions(() -> element.enabled = enabled.getValue()),
 
-                    new GUIElement(this, 1, 0),
-                    new GUIElement(this, 1, 0),
+                    new GUITextSpacer(this),
                     x.addEditActions(() ->
                     {
                         if (x.valid()) element.x = FilterInt.INSTANCE.parse(x.getText());
@@ -588,8 +598,7 @@ public class CBarElement extends CHUDElement
                         if (y.valid()) element.y = FilterInt.INSTANCE.parse(y.getText());
                     }),
 
-                    new GUIElement(this, 1, 0),
-                    new GUIElement(this, 1, 0),
+                    new GUITextSpacer(this),
                     hScale.addEditActions(() ->
                     {
                         if (hScale.valid()) element.hScale = FilterFloat.INSTANCE.parse(hScale.getText());
@@ -600,13 +609,11 @@ public class CBarElement extends CHUDElement
                         if (vScale.valid()) element.vScale = FilterFloat.INSTANCE.parse(vScale.getText());
                     }),
 
-                    new GUIElement(this, 1, 0),
-                    new GUIElement(this, 1, 0),
+                    new GUITextSpacer(this),
                     directionLabel.addClickActions(direction::click),
-                    direction.addClickActions(() -> new TextSelectionGUI(direction, "Direction", DIRECTIONS_S_I.keySet().toArray(new String[0]))),
+                    direction.addClickActions(() -> new TextSelectionGUI(direction, "Direction", DIRECTIONS_S_I.keySet().toArray(new String[0])).addOnClosedActions(() -> element.direction = DIRECTIONS_S_I.get(direction.getText()))),
 
-                    new GUIElement(this, 1, 0),
-                    new GUIElement(this, 1, 0),
+                    new GUITextSpacer(this),
                     backRL.addEditActions(() ->
                     {
                         if (backRL.valid()) element.backRL = FilterResourceLocation.INSTANCE.parse(backRL.getText());
@@ -622,8 +629,7 @@ public class CBarElement extends CHUDElement
                         if (foreRL.valid()) element.foreRL = FilterResourceLocation.INSTANCE.parse(foreRL.getText());
                     }),
 
-                    new GUIElement(this, 1, 0),
-                    new GUIElement(this, 1, 0),
+                    new GUITextSpacer(this),
                     new GUIText(this, "Background Color: "),
                     backColor.addClickActions(() -> new ColorSelectionGUI(backColor).addOnClosedActions(() -> element.backColor = backColor.getValue())),
                     new GUIElement(this, 1, 0),
@@ -633,16 +639,14 @@ public class CBarElement extends CHUDElement
                     new GUIText(this, "Foreground Color: "),
                     foreColor.addClickActions(() -> new ColorSelectionGUI(foreColor).addOnClosedActions(() -> element.foreColor = foreColor.getValue())),
 
-                    new GUIElement(this, 1, 0),
-                    new GUIElement(this, 1, 0),
+                    new GUITextSpacer(this),
                     centerText.addEditActions(() -> element.centerText = centerText.getText()),
                     new GUIElement(this, 1, 0),
                     lowEndText.addEditActions(() -> element.lowEndText = lowEndText.getText()),
                     new GUIElement(this, 1, 0),
                     highEndText.addEditActions(() -> element.highEndText = highEndText.getText()),
 
-                    new GUIElement(this, 1, 0),
-                    new GUIElement(this, 1, 0),
+                    new GUITextSpacer(this),
                     new GUIText(this, "Center Text Color: "),
                     centerTextColor.addClickActions(() -> new ColorSelectionGUI(centerTextColor).addOnClosedActions(() -> element.centerTextColor = centerTextColor.getValue())),
                     new GUIElement(this, 1, 0),
@@ -652,8 +656,7 @@ public class CBarElement extends CHUDElement
                     new GUIText(this, "High-End Text Color: "),
                     highEndTextColor.addClickActions(() -> new ColorSelectionGUI(highEndTextColor).addOnClosedActions(() -> element.highEndTextColor = highEndTextColor.getValue())),
 
-                    new GUIElement(this, 1, 0),
-                    new GUIElement(this, 1, 0),
+                    new GUITextSpacer(this),
                     new GUIText(this, "Center Text Color: "),
                     centerTextOutlineColor.addClickActions(() -> new ColorSelectionGUI(centerTextOutlineColor).addOnClosedActions(() -> element.centerTextOutlineColor = centerTextOutlineColor.getValue())),
                     new GUIElement(this, 1, 0),
@@ -663,8 +666,7 @@ public class CBarElement extends CHUDElement
                     new GUIText(this, "High-End Text Color: "),
                     highEndTextOutlineColor.addClickActions(() -> new ColorSelectionGUI(highEndTextOutlineColor).addOnClosedActions(() -> element.highEndTextOutlineColor = highEndTextOutlineColor.getValue())),
 
-                    new GUIElement(this, 1, 0),
-                    new GUIElement(this, 1, 0),
+                    new GUITextSpacer(this),
                     centerTextScale.addEditActions(() ->
                     {
                         if (centerTextScale.valid()) element.centerTextScale = FilterFloat.INSTANCE.parse(centerTextScale.getText());
@@ -680,8 +682,7 @@ public class CBarElement extends CHUDElement
                         if (highEndTextScale.valid()) element.highEndTextScale = FilterFloat.INSTANCE.parse(highEndTextScale.getText());
                     }),
 
-                    new GUIElement(this, 1, 0),
-                    new GUIElement(this, 1, 0),
+                    new GUITextSpacer(this),
                     min.addEditActions(() ->
                     {
                         if (min.valid()) element.min = min.getText();
@@ -698,6 +699,13 @@ public class CBarElement extends CHUDElement
                     })
             );
 
+
+            //Add recalc actions
+            navbar.addRecalcActions(() ->
+            {
+                scrollView.height = 1 - navbar.height;
+                scrollbar.height = 1 - navbar.height;
+            });
         }
 
         @Override
