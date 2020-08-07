@@ -8,13 +8,9 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import java.util.ArrayList;
-
 @SideOnly(Side.CLIENT)
 public class HUD
 {
-    public static final ArrayList<CHUDElement> HUD_ELEMENTS = new ArrayList<>();
-
     @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
     public static void drawHUD(Render.RenderHUDEvent event)
     {
@@ -25,7 +21,7 @@ public class HUD
         try
         {
             event.setScalingMode(Render.SCALING_FULL);
-            for (CHUDElement hudElement : HUD_ELEMENTS)
+            for (CHUDElement hudElement : CHUDElement.HUD_ELEMENTS.keySet())
             {
                 hudElement.tryDraw();
             }

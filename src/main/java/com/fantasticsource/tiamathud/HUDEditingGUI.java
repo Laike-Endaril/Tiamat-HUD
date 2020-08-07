@@ -24,6 +24,9 @@ public class HUDEditingGUI extends GUIScreen
 
     public HUDEditingGUI()
     {
+        editButtonToHUDElement.clear();
+
+
         //Background
         root.add(new GUIDarkenedBackground(this));
 
@@ -46,13 +49,53 @@ public class HUDEditingGUI extends GUIScreen
                 typeLabel.linkMouseActivity(type);
                 type.linkMouseActivity(typeLabel);
 
+                CHUDElement hudElement = null;
+                try
+                {
+                    hudElement = CHUDElement.TYPE_TO_CLASS.values().iterator().next().newInstance();
+                }
+                catch (InstantiationException | IllegalAccessException e)
+                {
+                    e.printStackTrace();
+                    hudElement.toString(); //Purposely crash
+                }
+                editButtonToHUDElement.put(editButton, hudElement);
+                CHUDElement.HUD_ELEMENTS.put(hudElement, name.getText());
+
                 return new GUIElement[]{
                         editButton.addClickActions(() -> editButtonToHUDElement.get(editButton).showEditingGUI(name.getText())),
                         new GUIElement(screen, 1, 0),
-                        name,
+                        name.addEditActions(() ->
+                        {
+                            if (name.valid()) CHUDElement.HUD_ELEMENTS.put(editButtonToHUDElement.get(editButton), name.getText());
+                        }),
                         new GUIElement(screen, 1, 0),
                         typeLabel.addClickActions(type::click),
-                        type.addClickActions(() -> new TextSelectionGUI(type, "Select Type", CHUDElement.TYPE_TO_CLASS.keySet().toArray(new String[0])))
+                        type.addClickActions(() ->
+                        {
+                            String typeName = type.getText();
+                            new TextSelectionGUI(type, "Select Type", CHUDElement.TYPE_TO_CLASS.keySet().toArray(new String[0])).addOnClosedActions(() ->
+                            {
+                                if (!typeName.equals(type.getText()))
+                                {
+                                    CHUDElement element = editButtonToHUDElement.get(editButton);
+                                    CHUDElement.HUD_ELEMENTS.remove(element);
+                                    element = null;
+
+                                    try
+                                    {
+                                        element = CHUDElement.TYPE_TO_CLASS.get(type.getText()).newInstance();
+                                    }
+                                    catch (InstantiationException | IllegalAccessException e)
+                                    {
+                                        e.printStackTrace();
+                                        element.toString(); //Purposely crash
+                                    }
+                                    editButtonToHUDElement.put(editButton, element);
+                                    CHUDElement.HUD_ELEMENTS.put(element, name.getText());
+                                }
+                            });
+                        })
                 };
             }
         };
@@ -63,10 +106,14 @@ public class HUDEditingGUI extends GUIScreen
         for (Map.Entry<CHUDElement, String> entry : CHUDElement.HUD_ELEMENTS.entrySet())
         {
             GUIList.Line line = hudElements.addLine();
-            CHUDElement element = entry.getKey();
 
+            CHUDElement.HUD_ELEMENTS.remove(editButtonToHUDElement.remove(line.getLineElement(0)));
+
+            CHUDElement element = entry.getKey();
             editButtonToHUDElement.put((GUIButton) line.getLineElement(0), element);
-            ((GUILabeledTextInput) line.getLineElement(2)).setText(entry.getValue());
+            String name = entry.getValue();
+            CHUDElement.HUD_ELEMENTS.put(element, name);
+            ((GUILabeledTextInput) line.getLineElement(2)).setText(name);
             ((GUIText) line.getLineElement(5)).setText(CHUDElement.CLASS_TO_TYPE.get(element.getClass()));
         }
 

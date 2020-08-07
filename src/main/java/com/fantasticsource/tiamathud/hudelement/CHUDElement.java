@@ -1,7 +1,6 @@
 package com.fantasticsource.tiamathud.hudelement;
 
 import com.fantasticsource.mctools.MCTools;
-import com.fantasticsource.mctools.gui.GUIScreen;
 import com.fantasticsource.tools.component.CBoolean;
 import com.fantasticsource.tools.component.CInt;
 import com.fantasticsource.tools.component.CStringUTF8;

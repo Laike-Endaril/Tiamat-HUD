@@ -174,7 +174,7 @@ public class CBarElement extends CHUDElement
         //Fill
         if (fillPNG != null && fillColor.af() > 0)
         {
-            Double min = null, current = null, max = null;
+            Double min, current, max;
             try
             {
                 min = Double.parseDouble(this.min);
@@ -190,11 +190,11 @@ public class CBarElement extends CHUDElement
             {
                 try
                 {
-                    current = Double.parseDouble(this.min);
+                    current = Double.parseDouble(this.current);
                 }
                 catch (NumberFormatException e)
                 {
-                    current = MCTools.getAttribute(Minecraft.getMinecraft().player, this.min);
+                    current = MCTools.getAttribute(Minecraft.getMinecraft().player, this.current);
                 }
             }
 
