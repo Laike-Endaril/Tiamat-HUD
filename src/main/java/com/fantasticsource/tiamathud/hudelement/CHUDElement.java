@@ -19,11 +19,14 @@ public abstract class CHUDElement extends Component
 
     public static final LinkedHashMap<CHUDElement, String> HUD_ELEMENTS = new LinkedHashMap<>();
 
-    public static final LinkedHashMap<String, Class<? extends CHUDElement>> TYPES = new LinkedHashMap<>();
+    public static final LinkedHashMap<String, Class<? extends CHUDElement>> TYPE_TO_CLASS = new LinkedHashMap<>();
+    public static final LinkedHashMap<Class<? extends CHUDElement>, String> CLASS_TO_TYPE = new LinkedHashMap<>();
 
     static
     {
-        TYPES.put("Bar", CBarElement.class);
+        TYPE_TO_CLASS.put("Bar", CBarElement.class);
+
+        CLASS_TO_TYPE.put(CBarElement.class, "Bar");
     }
 
 

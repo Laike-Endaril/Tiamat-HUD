@@ -15,6 +15,7 @@ import com.fantasticsource.tiamathud.hudelement.CHUDElement;
 import com.fantasticsource.tools.datastructures.Color;
 
 import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class HUDEditingGUI extends GUIScreen
 {
@@ -39,7 +40,7 @@ public class HUDEditingGUI extends GUIScreen
             public GUIElement[] newLineDefaultElements()
             {
                 GUIText typeLabel = new GUIText(screen, "Type: ", getIdleColor(Color.WHITE), getHoverColor(Color.WHITE), Color.WHITE);
-                GUIText type = new GUIText(screen, CHUDElement.TYPES.keySet().iterator().next(), getIdleColor(Color.WHITE), getHoverColor(Color.WHITE), Color.WHITE);
+                GUIText type = new GUIText(screen, CHUDElement.TYPE_TO_CLASS.keySet().iterator().next(), getIdleColor(Color.WHITE), getHoverColor(Color.WHITE), Color.WHITE);
                 typeLabel.linkMouseActivity(type);
                 type.linkMouseActivity(typeLabel);
 
@@ -49,7 +50,7 @@ public class HUDEditingGUI extends GUIScreen
                         new GUILabeledTextInput(screen, "Name: ", "HUD Element", FilterNone.INSTANCE),
                         new GUIElement(screen, 1, 0),
                         typeLabel.addClickActions(type::click),
-                        type.addClickActions(() -> new TextSelectionGUI(type, "Select Type", CHUDElement.TYPES.keySet().toArray(new String[0])))
+                        type.addClickActions(() -> new TextSelectionGUI(type, "Select Type", CHUDElement.TYPE_TO_CLASS.keySet().toArray(new String[0])))
                 };
             }
         };
@@ -57,7 +58,15 @@ public class HUDEditingGUI extends GUIScreen
         root.addAll(hudElements, scrollbar);
 
         //Add existing HUD elements
-        //TODO
+        for (Map.Entry<CHUDElement, String> entry : CHUDElement.HUD_ELEMENTS.entrySet())
+        {
+            GUIList.Line line = hudElements.addLine();
+            CHUDElement element = entry.getKey();
+
+            editButtonToHUDElement.put((GUIButton) line.getLineElement(0), element);
+            ((GUILabeledTextInput) line.getLineElement(2)).setText(entry.getValue());
+            ((GUIText) line.getLineElement(5)).setText(CHUDElement.CLASS_TO_TYPE.get(element.getClass()));
+        }
 
         //Add GUI actions
         navbar.addRecalcActions(() ->
