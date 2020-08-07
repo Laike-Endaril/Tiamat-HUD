@@ -22,7 +22,6 @@ import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.fml.common.network.ByteBufUtils;
-import org.lwjgl.opengl.Display;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -36,12 +35,12 @@ public class CBarElement extends CHUDElement
     public static final ResourceLocation
             DEFAULT_BACK_RL = new ResourceLocation(MODID, "image/default_bar_back.png"),
             DEFAULT_FILL_RL = new ResourceLocation(MODID, "image/default_bar_fill.png"),
-            DEFAULT_FORE_RL = new ResourceLocation(MODID, "image/default_bar_fore.png");
+            DEFAULT_FORE_RL = null;
 
     public static final PNG
             DEFAULT_BACK_PNG = MCTools.getPNG(DEFAULT_BACK_RL),
             DEFAULT_FILL_PNG = MCTools.getPNG(DEFAULT_FILL_RL),
-            DEFAULT_FORE_PNG = MCTools.getPNG(DEFAULT_FORE_RL);
+            DEFAULT_FORE_PNG = null;
 
     public static final int
             DIRECTION_LEFT_TO_RIGHT = 0,
@@ -68,20 +67,19 @@ public class CBarElement extends CHUDElement
 
     protected boolean error = false;
 
-    public int x = 0, y = 0;
     public double hScale = 1, vScale = 1;
     public int direction = DIRECTION_LEFT_TO_RIGHT;
 
     protected ResourceLocation backRL = DEFAULT_BACK_RL, fillRL = DEFAULT_FILL_RL, foreRL = DEFAULT_FORE_RL;
     protected PNG backPNG = DEFAULT_BACK_PNG, fillPNG = DEFAULT_FILL_PNG, forePNG = DEFAULT_FORE_PNG;
-    public Color backColor = Color.WHITE, fillColor = Color.WHITE, foreColor = Color.WHITE;
+    public Color backColor = Color.WHITE, fillColor = Color.GREEN, foreColor = Color.WHITE;
 
     public String centerText = "current", lowEndText = "", highEndText = "";
     public Color centerTextColor = Color.BLACK, lowEndTextColor = Color.BLACK, highEndTextColor = Color.BLACK;
     public Color centerTextOutlineColor = Color.WHITE, lowEndTextOutlineColor = Color.WHITE, highEndTextOutlineColor = Color.WHITE;
     public double centerTextScale = 1, lowEndTextScale = 1, highEndTextScale = 1;
 
-    public String min = "0", current = "health", max = "attribute:generic.maxHealth";
+    public String min = "0", current = "health", max = "generic.maxHealth";
 
 
     public ResourceLocation getBackRL()
@@ -102,13 +100,13 @@ public class CBarElement extends CHUDElement
     public void setBackRL(ResourceLocation backRL)
     {
         this.backRL = backRL;
-        backPNG = MCTools.getPNG(backRL);
+        backPNG = backRL == null ? null : MCTools.getPNG(backRL);
     }
 
     public void setFillRL(ResourceLocation fillRL)
     {
         this.fillRL = fillRL;
-        fillPNG = MCTools.getPNG(fillRL);
+        fillPNG = fillRL == null ? null : MCTools.getPNG(fillRL);
 
         error = false;
     }
@@ -116,7 +114,7 @@ public class CBarElement extends CHUDElement
     public void setForeRL(ResourceLocation foreRL)
     {
         this.foreRL = foreRL;
-        forePNG = MCTools.getPNG(foreRL);
+        forePNG = foreRL == null ? null : MCTools.getPNG(foreRL);
     }
 
 
@@ -143,8 +141,6 @@ public class CBarElement extends CHUDElement
         TextureManager textureManager = mc.getTextureManager();
 
 
-        GlStateManager.pushMatrix();
-        GlStateManager.translate(x >= 0 ? x : Display.getWidth() + x, y >= 0 ? y : Display.getHeight() + y, 0);
         GlStateManager.scale(hScale, vScale, 1);
         if (direction == DIRECTION_TOP_TO_BOTTOM || direction == DIRECTION_BOTTOM_TO_TOP)
         {
@@ -327,9 +323,6 @@ public class CBarElement extends CHUDElement
                 //TODO
             }
         }
-
-
-        GlStateManager.popMatrix();
     }
 
 
@@ -358,17 +351,14 @@ public class CBarElement extends CHUDElement
     {
         super.write(buf);
 
-        buf.writeInt(x);
-        buf.writeInt(y);
-
         buf.writeDouble(hScale);
         buf.writeDouble(vScale);
 
         buf.writeInt(direction);
 
-        ByteBufUtils.writeUTF8String(buf, backRL.toString());
-        ByteBufUtils.writeUTF8String(buf, fillRL.toString());
-        ByteBufUtils.writeUTF8String(buf, foreRL.toString());
+        ByteBufUtils.writeUTF8String(buf, backRL == null ? "" : backRL.toString());
+        ByteBufUtils.writeUTF8String(buf, fillRL == null ? "" : fillRL.toString());
+        ByteBufUtils.writeUTF8String(buf, foreRL == null ? "" : foreRL.toString());
 
         buf.writeInt(backColor.color());
         buf.writeInt(fillColor.color());
@@ -402,17 +392,17 @@ public class CBarElement extends CHUDElement
     {
         super.read(buf);
 
-        x = buf.readInt();
-        y = buf.readInt();
-
         hScale = buf.readDouble();
         vScale = buf.readDouble();
 
         direction = buf.readInt();
 
-        backRL = new ResourceLocation(ByteBufUtils.readUTF8String(buf));
-        fillRL = new ResourceLocation(ByteBufUtils.readUTF8String(buf));
-        foreRL = new ResourceLocation(ByteBufUtils.readUTF8String(buf));
+        String s = ByteBufUtils.readUTF8String(buf);
+        setBackRL(s.equals("") ? null : new ResourceLocation(s));
+        s = ByteBufUtils.readUTF8String(buf);
+        setFillRL(s.equals("") ? null : new ResourceLocation(s));
+        s = ByteBufUtils.readUTF8String(buf);
+        setForeRL(s.equals("") ? null : new ResourceLocation(s));
 
         backColor = new Color(buf.readInt());
         fillColor = new Color(buf.readInt());
@@ -446,13 +436,11 @@ public class CBarElement extends CHUDElement
     {
         super.save(stream);
 
-        CInt ci = new CInt().set(x).save(stream).set(y).save(stream);
-
         CDouble cd = new CDouble().set(hScale).save(stream).set(vScale).save(stream);
 
-        ci.set(direction).save(stream);
+        CInt ci = new CInt().set(direction).save(stream);
 
-        CStringUTF8 cs = new CStringUTF8().set(backRL.toString()).save(stream).set(fillRL.toString()).save(stream).set(foreRL.toString()).save(stream);
+        CStringUTF8 cs = new CStringUTF8().set(backRL == null ? "" : backRL.toString()).save(stream).set(fillRL == null ? "" : fillRL.toString()).save(stream).set(foreRL == null ? "" : foreRL.toString()).save(stream);
 
         ci.set(backColor.color()).save(stream).set(fillColor.color()).save(stream).set(foreColor.color()).save(stream);
 
@@ -478,17 +466,17 @@ public class CBarElement extends CHUDElement
         CDouble cd = new CDouble();
         CStringUTF8 cs = new CStringUTF8();
 
-        x = ci.load(stream).value;
-        y = ci.load(stream).value;
-
         hScale = cd.load(stream).value;
         vScale = cd.load(stream).value;
 
         direction = ci.load(stream).value;
 
-        backRL = new ResourceLocation(cs.load(stream).value);
-        fillRL = new ResourceLocation(cs.load(stream).value);
-        foreRL = new ResourceLocation(cs.load(stream).value);
+        String s = cs.load(stream).value;
+        setBackRL(s.equals("") ? null : new ResourceLocation(s));
+        s = cs.load(stream).value;
+        setFillRL(s.equals("") ? null : new ResourceLocation(s));
+        s = cs.load(stream).value;
+        setForeRL(s.equals("") ? null : new ResourceLocation(s));
 
         backColor = new Color(ci.load(stream).value);
         fillColor = new Color(ci.load(stream).value);
@@ -543,21 +531,32 @@ public class CBarElement extends CHUDElement
 
 
             GUILabeledBoolean enabled = new GUILabeledBoolean(this, "Enabled: ", element.enabled);
+            enabled.input.addClickActions(() -> element.enabled = enabled.getValue());
 
-            GUILabeledTextInput x = new GUILabeledTextInput(this, "X: ", "" + element.x, FilterInt.INSTANCE);
-            GUILabeledTextInput y = new GUILabeledTextInput(this, "Y: ", "" + element.y, FilterInt.INSTANCE);
+            GUILabeledTextInput xOffset = new GUILabeledTextInput(this, "X Offset: ", "" + element.xOffset, FilterInt.INSTANCE);
+            GUILabeledTextInput yOffset = new GUILabeledTextInput(this, "Y Offset: ", "" + element.yOffset, FilterInt.INSTANCE);
+
+            GUIText xAnchorLabel = new GUIText(this, "X Anchor: ");
+            GUIText xAnchor = new GUIText(this, X_ANCHORS_I_S.get(element.xAnchor), getIdleColor(Color.WHITE), getHoverColor(Color.WHITE), Color.WHITE);
+            xAnchorLabel.linkMouseActivity(xAnchor);
+            xAnchor.linkMouseActivity(xAnchorLabel);
+
+            GUIText yAnchorLabel = new GUIText(this, "Y Anchor: ");
+            GUIText yAnchor = new GUIText(this, Y_ANCHORS_I_S.get(element.yAnchor), getIdleColor(Color.WHITE), getHoverColor(Color.WHITE), Color.WHITE);
+            yAnchorLabel.linkMouseActivity(yAnchor);
+            yAnchor.linkMouseActivity(yAnchorLabel);
 
             GUILabeledTextInput hScale = new GUILabeledTextInput(this, "Horizontal Scaling: ", "" + element.hScale, FilterFloat.INSTANCE);
             GUILabeledTextInput vScale = new GUILabeledTextInput(this, "Vertical Scaling: ", "" + element.vScale, FilterFloat.INSTANCE);
 
             GUIText directionLabel = new GUIText(this, "Direction: ");
-            GUIText direction = new GUIText(this, DIRECTIONS_I_S.get(element.direction));
+            GUIText direction = new GUIText(this, DIRECTIONS_I_S.get(element.direction), getIdleColor(Color.WHITE), getHoverColor(Color.WHITE), Color.WHITE);
             directionLabel.linkMouseActivity(direction);
             direction.linkMouseActivity(directionLabel);
 
-            GUILabeledTextInput backRL = new GUILabeledTextInput(this, "Background Texture: ", element.backRL.toString(), FilterResourceLocation.INSTANCE);
-            GUILabeledTextInput fillRL = new GUILabeledTextInput(this, "Fill Texture: ", element.fillRL.toString(), FilterResourceLocation.INSTANCE);
-            GUILabeledTextInput foreRL = new GUILabeledTextInput(this, "Foreground Texture: ", element.foreRL.toString(), FilterResourceLocation.INSTANCE);
+            GUILabeledTextInput backRL = new GUILabeledTextInput(this, "Background Texture: ", element.backRL == null ? "" : element.backRL.toString(), FilterNullableResourceLocation.INSTANCE);
+            GUILabeledTextInput fillRL = new GUILabeledTextInput(this, "Fill Texture: ", element.fillRL == null ? "" : element.fillRL.toString(), FilterNullableResourceLocation.INSTANCE);
+            GUILabeledTextInput foreRL = new GUILabeledTextInput(this, "Foreground Texture: ", element.foreRL == null ? "" : element.foreRL.toString(), FilterNullableResourceLocation.INSTANCE);
 
             GUIColor backColor = new GUIColor(this, element.backColor);
             GUIColor fillColor = new GUIColor(this, element.fillColor);
@@ -585,17 +584,24 @@ public class CBarElement extends CHUDElement
 
 
             scrollView.addAll(
-                    enabled.addClickActions(() -> element.enabled = enabled.getValue()),
+                    enabled,
 
                     new GUITextSpacer(this),
-                    x.addEditActions(() ->
+                    xAnchorLabel.addClickActions(xAnchor::click),
+                    xAnchor.addClickActions(() -> new TextSelectionGUI(xAnchor, "X Anchor", X_ANCHORS_S_I.keySet().toArray(new String[0])).addOnClosedActions(() -> element.xAnchor = X_ANCHORS_S_I.get(xAnchor.getText()))),
+                    new GUIElement(this, 1, 0),
+                    yAnchorLabel.addClickActions(yAnchor::click),
+                    yAnchor.addClickActions(() -> new TextSelectionGUI(yAnchor, "Y Anchor", Y_ANCHORS_S_I.keySet().toArray(new String[0])).addOnClosedActions(() -> element.yAnchor = Y_ANCHORS_S_I.get(yAnchor.getText()))),
+
+                    new GUITextSpacer(this),
+                    xOffset.addEditActions(() ->
                     {
-                        if (x.valid()) element.x = FilterInt.INSTANCE.parse(x.getText());
+                        if (xOffset.valid()) element.xOffset = FilterInt.INSTANCE.parse(xOffset.getText());
                     }),
                     new GUIElement(this, 1, 0),
-                    y.addEditActions(() ->
+                    yOffset.addEditActions(() ->
                     {
-                        if (y.valid()) element.y = FilterInt.INSTANCE.parse(y.getText());
+                        if (yOffset.valid()) element.yOffset = FilterInt.INSTANCE.parse(yOffset.getText());
                     }),
 
                     new GUITextSpacer(this),
@@ -616,17 +622,17 @@ public class CBarElement extends CHUDElement
                     new GUITextSpacer(this),
                     backRL.addEditActions(() ->
                     {
-                        if (backRL.valid()) element.backRL = FilterResourceLocation.INSTANCE.parse(backRL.getText());
+                        if (backRL.valid()) element.backRL = FilterNullableResourceLocation.INSTANCE.parse(backRL.getText());
                     }),
                     new GUIElement(this, 1, 0),
                     fillRL.addEditActions(() ->
                     {
-                        if (fillRL.valid()) element.fillRL = FilterResourceLocation.INSTANCE.parse(fillRL.getText());
+                        if (fillRL.valid()) element.fillRL = FilterNullableResourceLocation.INSTANCE.parse(fillRL.getText());
                     }),
                     new GUIElement(this, 1, 0),
                     foreRL.addEditActions(() ->
                     {
-                        if (foreRL.valid()) element.foreRL = FilterResourceLocation.INSTANCE.parse(foreRL.getText());
+                        if (foreRL.valid()) element.foreRL = FilterNullableResourceLocation.INSTANCE.parse(foreRL.getText());
                     }),
 
                     new GUITextSpacer(this),

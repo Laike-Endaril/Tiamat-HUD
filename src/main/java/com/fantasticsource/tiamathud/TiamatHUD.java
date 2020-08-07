@@ -7,7 +7,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.relauncher.Side;
 
-@Mod(modid = TiamatHUD.MODID, name = TiamatHUD.NAME, version = TiamatHUD.VERSION, dependencies = "required-after:fantasticlib@[1.12.2.036k,)", acceptableRemoteVersions = "*")
+@Mod(modid = TiamatHUD.MODID, name = TiamatHUD.NAME, version = TiamatHUD.VERSION, dependencies = "required-after:fantasticlib@[1.12.2.036l,)", acceptableRemoteVersions = "*")
 public class TiamatHUD
 {
     public static final String MODID = "tiamathud";
