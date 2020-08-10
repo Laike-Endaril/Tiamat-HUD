@@ -1,10 +1,22 @@
+AttackCooldown keyword
+MountCharge keyword
+
+
+
 Options for whether each vanilla element is rendered
 
 
-Default HUD replacements for
-HP
-Hunger
-Exp
-Armor
 
+Default HUD replacements for
+Attack Cooldown
+Mount Charge
+Armor
+Armor Toughness
 Hotbar
+Potion Effects
+
+
+
+Server-side config to sync specified data to client...
+...packet for setting client data (key, value)
+...packet for clearing client data (key)

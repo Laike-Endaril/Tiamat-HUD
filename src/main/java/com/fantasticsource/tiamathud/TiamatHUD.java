@@ -19,7 +19,7 @@ public class TiamatHUD
     {
         if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT)
         {
-            MinecraftForge.EVENT_BUS.register(HUD.class);
+            MinecraftForge.EVENT_BUS.register(CHUD.class);
             Keys.init(event);
             CHUDElement.loadAll();
         }

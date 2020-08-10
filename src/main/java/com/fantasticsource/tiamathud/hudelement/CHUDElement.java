@@ -1,10 +1,12 @@
 package com.fantasticsource.tiamathud.hudelement;
 
 import com.fantasticsource.mctools.MCTools;
+import com.fantasticsource.tiamathud.CHUD;
 import com.fantasticsource.tools.component.CBoolean;
 import com.fantasticsource.tools.component.CInt;
 import com.fantasticsource.tools.component.CStringUTF8;
 import com.fantasticsource.tools.component.Component;
+import com.fantasticsource.tools.datastructures.Color;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.client.renderer.GlStateManager;
 import org.lwjgl.opengl.Display;
@@ -83,6 +85,10 @@ public abstract class CHUDElement extends Component
         {
             FileOutputStream stream = new FileOutputStream(FILE);
 
+
+            new CHUD().save(stream);
+
+
             new CInt().set(HUD_ELEMENTS.size()).save(stream);
             CStringUTF8 cs = new CStringUTF8();
             for (Map.Entry<CHUDElement, String> entry : HUD_ELEMENTS.entrySet())
@@ -102,12 +108,20 @@ public abstract class CHUDElement extends Component
     public static void loadAll()
     {
         HUD_ELEMENTS.clear();
-        if (!FILE.exists()) return;
+        if (!FILE.exists())
+        {
+            initDefaults();
+            return;
+        }
 
 
         try
         {
             FileInputStream stream = new FileInputStream(FILE);
+
+
+            new CHUD().load(stream);
+
 
             CStringUTF8 cs = new CStringUTF8();
             for (int i = new CInt().load(stream).value; i > 0; i--)
@@ -121,6 +135,59 @@ public abstract class CHUDElement extends Component
         {
             e.printStackTrace();
         }
+    }
+
+    public static void initDefaults()
+    {
+        //TODO Add all default settings here
+
+        CBarElement bar = new CBarElement();
+        bar.yAnchor = Y_ANCHOR_BOTTOM;
+        bar.yOffset = -98;
+        bar.hScale = 2;
+        bar.vScale = 2;
+        bar.textScale = 2;
+        bar.fillColor = Color.RED;
+        HUD_ELEMENTS.put(bar, "Health");
+
+        bar = new CBarElement();
+        bar.direction = CBarElement.DIRECTION_RIGHT_TO_LEFT;
+        bar.yAnchor = Y_ANCHOR_BOTTOM;
+        bar.xOffset = -71;
+        bar.yOffset = -71;
+        bar.current = "food";
+        bar.max = "20";
+        bar.fillColor = Color.ORANGE;
+        HUD_ELEMENTS.put(bar, "Food");
+
+        bar = new CBarElement();
+        bar.direction = CBarElement.DIRECTION_RIGHT_TO_LEFT;
+        bar.yAnchor = Y_ANCHOR_BOTTOM;
+        bar.xOffset = -71;
+        bar.yOffset = -53;
+        bar.current = "saturation";
+        bar.max = "20";
+        bar.fillColor = Color.YELLOW;
+        HUD_ELEMENTS.put(bar, "Saturation");
+
+        bar = new CBarElement();
+        bar.yAnchor = Y_ANCHOR_BOTTOM;
+        bar.xOffset = 71;
+        bar.yOffset = -71;
+        bar.current = "breath";
+        bar.max = "300";
+        bar.fillColor = Color.AQUA;
+        HUD_ELEMENTS.put(bar, "Breath");
+
+        bar = new CBarElement();
+        bar.yAnchor = Y_ANCHOR_BOTTOM;
+        bar.xOffset = 71;
+        bar.yOffset = -53;
+        bar.current = "exp";
+        bar.max = "1";
+        bar.fillColor = Color.GREEN;
+        bar.text = "Lvl @level (@percent)";
+        HUD_ELEMENTS.put(bar, "Exp");
     }
 
 

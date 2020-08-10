@@ -103,7 +103,7 @@ public class HUDEditingGUI extends GUIScreen
         root.addAll(hudElements, scrollbar);
 
         //Add existing HUD elements
-        for (Map.Entry<CHUDElement, String> entry : CHUDElement.HUD_ELEMENTS.entrySet())
+        for (Map.Entry<CHUDElement, String> entry : CHUDElement.HUD_ELEMENTS.entrySet().toArray(new Map.Entry[0]))
         {
             GUIList.Line line = hudElements.addLine();
 

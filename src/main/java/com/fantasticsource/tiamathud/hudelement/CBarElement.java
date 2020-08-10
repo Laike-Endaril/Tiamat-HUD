@@ -12,6 +12,7 @@ import com.fantasticsource.mctools.gui.element.view.GUIScrollView;
 import com.fantasticsource.mctools.gui.screen.ColorSelectionGUI;
 import com.fantasticsource.mctools.gui.screen.TextSelectionGUI;
 import com.fantasticsource.tools.PNG;
+import com.fantasticsource.tools.Tools;
 import com.fantasticsource.tools.component.CDouble;
 import com.fantasticsource.tools.component.CInt;
 import com.fantasticsource.tools.component.CStringUTF8;
@@ -75,7 +76,7 @@ public class CBarElement extends CHUDElement
     protected PNG backPNG = DEFAULT_BACK_PNG, fillPNG = DEFAULT_FILL_PNG, forePNG = DEFAULT_FORE_PNG;
     public Color backColor = Color.WHITE, fillColor = Color.GREEN, foreColor = Color.WHITE;
 
-    public String text = "current/max";
+    public String text = "@current/@max";
     public Color textColor = Color.WHITE, textOutlineColor = Color.BLACK;
     public double textScale = 1;
 
@@ -205,9 +206,9 @@ public class CBarElement extends CHUDElement
         }
 
         //Fill
-        if (fillPNG != null && fillColor.af() > 0 && min != null && current != null && max != null && max - min != 0 && current <= max)
+        if (fillPNG != null && fillColor.af() > 0 && min != null && current != null && max != null && max - min != 0)
         {
-            float fillPercent = (float) ((current - min) / (max - min));
+            float fillPercent = Tools.min(1, (float) ((current - min) / (max - min)));
 
             textureManager.bindTexture(fillRL);
             GlStateManager.color(fillColor.rf(), fillColor.gf(), fillColor.bf(), fillColor.af());
@@ -272,7 +273,11 @@ public class CBarElement extends CHUDElement
         if (!text.equals("") && (textColor.af() > 0 || textOutlineColor.af() > 0))
         {
             GlStateManager.scale(textScale, textScale, 1);
-            String text = this.text.replaceAll("[mM][iI][nN]", min == null ? "null" : String.format("%.1f", min)).replaceAll("[cC][uU][rR][rR][eE][nN][tT]", current == null ? "null" : String.format("%.1f", current)).replaceAll("[mM][aA][xX]", max == null ? "null" : String.format("%.1f", max));
+            String text = this.text.replaceAll("[@][mM][iI][nN]", min == null ? "null" : String.format("%.1f", min));
+            text = text.replaceAll("[@][cC][uU][rR][rR][eE][nN][tT]", current == null ? "null" : String.format("%.1f", current));
+            text = text.replaceAll("[@][mM][aA][xX]", max == null ? "null" : String.format("%.1f", max));
+            text = text.replaceAll("[@][lL][eE][vV][eE][lL]", "" + Minecraft.getMinecraft().player.experienceLevel);
+            text = text.replaceAll("[@][pP][eE][rR][cC][eE][nN][tT]", min == null || current == null || max == null ? "N/A%" : "" + Math.floor(100 * (current - min) / (max - min)) + "%");
             OutlinedFontRenderer.draw(text, -(OutlinedFontRenderer.getStringWidth(text) >>> 1), -(OutlinedFontRenderer.LINE_HEIGHT >>> 1), textColor, textOutlineColor);
         }
     }
@@ -284,6 +289,18 @@ public class CBarElement extends CHUDElement
         {
             case "health":
                 return (double) Minecraft.getMinecraft().player.getHealth();
+
+            case "food":
+                return (double) Minecraft.getMinecraft().player.getFoodStats().getFoodLevel();
+
+            case "saturation":
+                return (double) Minecraft.getMinecraft().player.getFoodStats().getSaturationLevel();
+
+            case "breath":
+                return (double) Minecraft.getMinecraft().player.getAir();
+
+            case "exp":
+                return (double) Minecraft.getMinecraft().player.experience;
 
             default:
                 return null;
