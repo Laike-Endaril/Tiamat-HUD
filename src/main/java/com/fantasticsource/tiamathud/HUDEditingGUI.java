@@ -5,6 +5,7 @@ import com.fantasticsource.mctools.gui.element.GUIElement;
 import com.fantasticsource.mctools.gui.element.other.GUIButton;
 import com.fantasticsource.mctools.gui.element.other.GUIDarkenedBackground;
 import com.fantasticsource.mctools.gui.element.other.GUIVerticalScrollbar;
+import com.fantasticsource.mctools.gui.element.text.GUILabeledBoolean;
 import com.fantasticsource.mctools.gui.element.text.GUILabeledTextInput;
 import com.fantasticsource.mctools.gui.element.text.GUINavbar;
 import com.fantasticsource.mctools.gui.element.text.GUIText;
@@ -44,7 +45,7 @@ public class HUDEditingGUI extends GUIScreen
         root.add(tabView);
 
 
-        //List of HUD elements
+        //Custom HUD Tab
         hudElements = new GUIList(this, true, 0.98, 1)
         {
             @Override
@@ -124,6 +125,56 @@ public class HUDEditingGUI extends GUIScreen
             ((GUILabeledTextInput) line.getLineElement(2)).setText(name);
             ((GUIText) line.getLineElement(5)).setText(CHUDElement.CLASS_TO_TYPE.get(element.getClass()));
         }
+
+
+        //Vanilla HUD Tab
+        GUILabeledBoolean vanillaHP = new GUILabeledBoolean(this, "Health: ", CHUD.renderVanillaHP);
+        vanillaHP.input.addClickActions(() -> CHUD.renderVanillaHP = vanillaHP.getValue());
+
+        GUILabeledBoolean vanillaFood = new GUILabeledBoolean(this, "Food: ", CHUD.renderVanillaFood);
+        vanillaFood.input.addClickActions(() -> CHUD.renderVanillaFood = vanillaFood.getValue());
+
+        GUILabeledBoolean vanillaBreath = new GUILabeledBoolean(this, "Breath: ", CHUD.renderVanillaBreath);
+        vanillaBreath.input.addClickActions(() -> CHUD.renderVanillaBreath = vanillaBreath.getValue());
+
+        GUILabeledBoolean vanillaExp = new GUILabeledBoolean(this, "Experience: ", CHUD.renderVanillaExp);
+        vanillaExp.input.addClickActions(() -> CHUD.renderVanillaExp = vanillaExp.getValue());
+
+        GUILabeledBoolean vanillaMountHP = new GUILabeledBoolean(this, "Mount Health: ", CHUD.renderVanillaMountHealth);
+        vanillaMountHP.input.addClickActions(() -> CHUD.renderVanillaMountHealth = vanillaMountHP.getValue());
+
+        GUILabeledBoolean vanillaMountCharge = new GUILabeledBoolean(this, "Mount Charge: ", CHUD.renderVanillaMountCharge);
+        vanillaMountCharge.input.addClickActions(() -> CHUD.renderVanillaMountCharge = vanillaMountCharge.getValue());
+
+        GUILabeledBoolean vanillaArmor = new GUILabeledBoolean(this, "Armor: ", CHUD.renderVanillaArmor);
+        vanillaArmor.input.addClickActions(() -> CHUD.renderVanillaArmor = vanillaArmor.getValue());
+
+        GUILabeledBoolean vanillaHotbar = new GUILabeledBoolean(this, "Hotbar: ", CHUD.renderVanillaHotbar);
+        vanillaHotbar.input.addClickActions(() -> CHUD.renderVanillaHotbar = vanillaHotbar.getValue());
+
+        GUILabeledBoolean vanillaPotionEffects = new GUILabeledBoolean(this, "Potion Effects: ", CHUD.renderVanillaPotionEffects);
+        vanillaPotionEffects.input.addClickActions(() -> CHUD.renderVanillaPotionEffects = vanillaPotionEffects.getValue());
+
+        tabView.tabViews.get(1).addAll(
+                vanillaHP,
+                new GUIElement(this, 1, 0),
+                vanillaFood,
+                new GUIElement(this, 1, 0),
+                vanillaBreath,
+                new GUIElement(this, 1, 0),
+                vanillaExp,
+                new GUIElement(this, 1, 0),
+                vanillaMountHP,
+                new GUIElement(this, 1, 0),
+                vanillaMountCharge,
+                new GUIElement(this, 1, 0),
+                vanillaArmor,
+                new GUIElement(this, 1, 0),
+                vanillaHotbar,
+                new GUIElement(this, 1, 0),
+                vanillaPotionEffects
+        );
+
 
         //Add GUI actions
         navbar.addRecalcActions(() -> tabView.height = 1 - (navbar.y + navbar.height));
