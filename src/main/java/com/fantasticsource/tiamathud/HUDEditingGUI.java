@@ -10,6 +10,7 @@ import com.fantasticsource.mctools.gui.element.text.GUINavbar;
 import com.fantasticsource.mctools.gui.element.text.GUIText;
 import com.fantasticsource.mctools.gui.element.text.filter.FilterNone;
 import com.fantasticsource.mctools.gui.element.view.GUIList;
+import com.fantasticsource.mctools.gui.element.view.GUITabView;
 import com.fantasticsource.mctools.gui.screen.TextSelectionGUI;
 import com.fantasticsource.tiamathud.hudelement.CHUDElement;
 import com.fantasticsource.tools.datastructures.Color;
@@ -24,6 +25,8 @@ public class HUDEditingGUI extends GUIScreen
 
     public HUDEditingGUI()
     {
+        showUnstacked(this);
+
         editButtonToHUDElement.clear();
 
 
@@ -36,8 +39,13 @@ public class HUDEditingGUI extends GUIScreen
         root.add(navbar);
 
 
+        //Tabview
+        GUITabView tabView = new GUITabView(this, 1, 1 - (navbar.y + navbar.height), "Custom HUD", "Vanilla HUD");
+        root.add(tabView);
+
+
         //List of HUD elements
-        hudElements = new GUIList(this, true, 0.98, 1 - (navbar.y + navbar.height))
+        hudElements = new GUIList(this, true, 0.98, 1)
         {
             @Override
             public GUIElement[] newLineDefaultElements()
@@ -99,8 +107,8 @@ public class HUDEditingGUI extends GUIScreen
                 };
             }
         };
-        GUIVerticalScrollbar scrollbar = new GUIVerticalScrollbar(this, 0.02, 1 - (navbar.y + navbar.height), Color.GRAY, Color.BLANK, Color.WHITE, Color.BLANK, hudElements);
-        root.addAll(hudElements, scrollbar);
+        GUIVerticalScrollbar scrollbar = new GUIVerticalScrollbar(this, 0.02, 1, Color.GRAY, Color.BLANK, Color.WHITE, Color.BLANK, hudElements);
+        tabView.tabViews.get(0).addAll(hudElements, scrollbar);
 
         //Add existing HUD elements
         for (Map.Entry<CHUDElement, String> entry : CHUDElement.HUD_ELEMENTS.entrySet().toArray(new Map.Entry[0]))
@@ -118,11 +126,7 @@ public class HUDEditingGUI extends GUIScreen
         }
 
         //Add GUI actions
-        navbar.addRecalcActions(() ->
-        {
-            hudElements.height = 1 - (navbar.y + navbar.height);
-            scrollbar.height = 1 - (navbar.y + navbar.height);
-        });
+        navbar.addRecalcActions(() -> tabView.height = 1 - (navbar.y + navbar.height));
         hudElements.addRemoveChildActions(element ->
         {
             if (element instanceof GUIList.Line)
@@ -131,6 +135,8 @@ public class HUDEditingGUI extends GUIScreen
             }
             return true;
         });
+
+        recalc();
     }
 
     @Override

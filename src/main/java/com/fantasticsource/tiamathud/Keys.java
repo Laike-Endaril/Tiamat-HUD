@@ -30,9 +30,6 @@ public class Keys
     @SubscribeEvent
     public static void keyPress(InputEvent event)
     {
-        if (EDIT_HUD.isKeyDown())
-        {
-            GUIScreen.showUnstacked(new HUDEditingGUI());
-        }
+        if (EDIT_HUD.isKeyDown()) new HUDEditingGUI();
     }
 }
