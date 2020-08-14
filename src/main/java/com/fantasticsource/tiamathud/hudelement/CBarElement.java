@@ -20,7 +20,11 @@ import com.fantasticsource.tools.datastructures.Color;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.fml.common.network.ByteBufUtils;
@@ -34,9 +38,11 @@ import static org.lwjgl.opengl.GL11.GL_QUADS;
 
 public class CBarElement extends CHUDElement
 {
+    protected static final FilterRangedInt HOTBAR_SLOT_FILTER = FilterRangedInt.get(0, 9);
+
     public static final ResourceLocation
-            DEFAULT_BACK_RL = new ResourceLocation(MODID, "image/default_bar_back.png"),
-            DEFAULT_FILL_RL = new ResourceLocation(MODID, "image/default_bar_fill.png"),
+            DEFAULT_BACK_RL = new ResourceLocation(MODID, "image/bar_back.png"),
+            DEFAULT_FILL_RL = new ResourceLocation(MODID, "image/bar_fill.png"),
             DEFAULT_FORE_RL = null;
 
     public static final PNG
@@ -70,11 +76,15 @@ public class CBarElement extends CHUDElement
     protected boolean error = false;
 
     public double hScale = 1, vScale = 1;
+    public float angle = 0;
     public int direction = DIRECTION_LEFT_TO_RIGHT;
 
     protected ResourceLocation backRL = DEFAULT_BACK_RL, fillRL = DEFAULT_FILL_RL, foreRL = DEFAULT_FORE_RL;
     protected PNG backPNG = DEFAULT_BACK_PNG, fillPNG = DEFAULT_FILL_PNG, forePNG = DEFAULT_FORE_PNG;
-    public Color backColor = Color.WHITE, fillColor = Color.GREEN, foreColor = Color.WHITE;
+    public Color backColor = Color.WHITE, fillColor = Color.WHITE, foreColor = Color.WHITE;
+
+    public int hotbarItem = 0;
+    public double hotbarItemScale = 1;
 
     public String text = "@current/@max";
     public Color textColor = Color.WHITE, textOutlineColor = Color.BLACK;
@@ -143,47 +153,55 @@ public class CBarElement extends CHUDElement
 
 
         GlStateManager.pushMatrix();
-        GlStateManager.scale(hScale, vScale, 1);
-        if (direction == DIRECTION_TOP_TO_BOTTOM || direction == DIRECTION_BOTTOM_TO_TOP) GlStateManager.rotate(90, 0, 0, -1);
+        GlStateManager.rotate(angle, 0, 0, -1);
 
 
         //Min, current, and max value computation
         Double min, current, max;
-        try
+        if (hotbarItem > 0 && hotbarItem < 10)
         {
-            min = Double.parseDouble(this.min);
+            min = 0d;
+            current = (double) Minecraft.getMinecraft().player.getCooledAttackStrength(0);
+            max = 1d;
         }
-        catch (NumberFormatException e)
-        {
-            min = MCTools.getAttribute(Minecraft.getMinecraft().player, this.min);
-        }
-        if (min == null) min = parseVal(this.min);
-
-        current = parseVal(this.current);
-        if (current == null)
+        else
         {
             try
             {
-                current = Double.parseDouble(this.current);
+                min = Double.parseDouble(this.min);
             }
             catch (NumberFormatException e)
             {
-                current = MCTools.getAttribute(Minecraft.getMinecraft().player, this.current);
+                min = MCTools.getAttribute(Minecraft.getMinecraft().player, this.min);
             }
-        }
+            if (min == null) min = parseVal(this.min);
 
-        max = MCTools.getAttribute(Minecraft.getMinecraft().player, this.max);
-        if (max == null)
-        {
-            try
+            current = parseVal(this.current);
+            if (current == null)
             {
-                max = Double.parseDouble(this.max);
+                try
+                {
+                    current = Double.parseDouble(this.current);
+                }
+                catch (NumberFormatException e)
+                {
+                    current = MCTools.getAttribute(Minecraft.getMinecraft().player, this.current);
+                }
             }
-            catch (NumberFormatException e)
+
+            max = MCTools.getAttribute(Minecraft.getMinecraft().player, this.max);
+            if (max == null)
             {
+                try
+                {
+                    max = Double.parseDouble(this.max);
+                }
+                catch (NumberFormatException e)
+                {
+                }
             }
+            if (max == null) max = parseVal(this.max);
         }
-        if (max == null) max = parseVal(this.max);
 
 
         //Background
@@ -192,7 +210,7 @@ public class CBarElement extends CHUDElement
             textureManager.bindTexture(backRL);
             GlStateManager.color(backColor.rf(), backColor.gf(), backColor.bf(), backColor.af());
 
-            int halfW = backPNG.getWidth() >>> 1, halfH = backPNG.getHeight() >>> 1;
+            float halfW = (float) ((backPNG.getWidth() >>> 1) * hScale), halfH = (float) ((backPNG.getHeight() >>> 1) * vScale);
             GlStateManager.glBegin(GL_QUADS);
             GlStateManager.glTexCoord2f(0, 0);
             GlStateManager.glVertex3f(-halfW, -halfH, 0);
@@ -206,43 +224,109 @@ public class CBarElement extends CHUDElement
         }
 
         //Fill
-        if (fillPNG != null && fillColor.af() > 0 && min != null && current != null && max != null && max - min != 0)
+        if (hotbarItem < 1 || hotbarItem > 9 || hotbarItem - 1 == Minecraft.getMinecraft().player.inventory.currentItem)
         {
-            float fillPercent = Tools.min(1, (float) ((current - min) / (max - min)));
-
-            textureManager.bindTexture(fillRL);
-            GlStateManager.color(fillColor.rf(), fillColor.gf(), fillColor.bf(), fillColor.af());
-
-            int w = fillPNG.getWidth(), h = fillPNG.getHeight();
-            int halfW = w >>> 1, halfH = h >>> 1;
-
-            switch (direction)
+            if (fillPNG != null && fillColor.af() > 0 && min != null && current != null && max != null && max - min != 0)
             {
-                case DIRECTION_LEFT_TO_RIGHT:
-                case DIRECTION_BOTTOM_TO_TOP:
-                    GlStateManager.glBegin(GL_QUADS);
-                    GlStateManager.glTexCoord2f(0, 0);
-                    GlStateManager.glVertex3f(-halfW, -halfH, 0);
-                    GlStateManager.glTexCoord2f(0, 1);
-                    GlStateManager.glVertex3f(-halfW, halfH, 0);
-                    GlStateManager.glTexCoord2f(fillPercent, 1);
-                    GlStateManager.glVertex3f(-halfW + w * fillPercent, halfH, 0);
-                    GlStateManager.glTexCoord2f(fillPercent, 0);
-                    GlStateManager.glVertex3f(-halfW + w * fillPercent, -halfH, 0);
-                    GlStateManager.glEnd();
-                    break;
+                float fillPercent = Tools.min(1, (float) ((current - min) / (max - min)));
 
-                default:
-                    GlStateManager.glBegin(GL_QUADS);
-                    GlStateManager.glTexCoord2f(1 - fillPercent, 0);
-                    GlStateManager.glVertex3f(halfW - w * fillPercent, -halfH, 0);
-                    GlStateManager.glTexCoord2f(1 - fillPercent, 1);
-                    GlStateManager.glVertex3f(halfW - w * fillPercent, halfH, 0);
-                    GlStateManager.glTexCoord2f(1, 1);
-                    GlStateManager.glVertex3f(halfW, halfH, 0);
-                    GlStateManager.glTexCoord2f(1, 0);
-                    GlStateManager.glVertex3f(halfW, -halfH, 0);
-                    GlStateManager.glEnd();
+                textureManager.bindTexture(fillRL);
+                GlStateManager.color(fillColor.rf(), fillColor.gf(), fillColor.bf(), fillColor.af());
+
+                float w = (float) (fillPNG.getWidth() * hScale), h = (float) (fillPNG.getHeight() * vScale);
+                float halfW = w * 0.5f, halfH = h * 0.5f;
+
+                switch (direction)
+                {
+                    case DIRECTION_LEFT_TO_RIGHT:
+                        GlStateManager.glBegin(GL_QUADS);
+
+                        GlStateManager.glTexCoord2f(0, 0);
+                        GlStateManager.glVertex3f(-halfW, -halfH, 0);
+
+                        GlStateManager.glTexCoord2f(0, 1);
+                        GlStateManager.glVertex3f(-halfW, halfH, 0);
+
+                        GlStateManager.glTexCoord2f(fillPercent, 1);
+                        GlStateManager.glVertex3f(-halfW + w * fillPercent, halfH, 0);
+
+                        GlStateManager.glTexCoord2f(fillPercent, 0);
+                        GlStateManager.glVertex3f(-halfW + w * fillPercent, -halfH, 0);
+
+                        GlStateManager.glEnd();
+                        break;
+
+                    case DIRECTION_RIGHT_TO_LEFT:
+                        GlStateManager.glBegin(GL_QUADS);
+
+                        GlStateManager.glTexCoord2f(1 - fillPercent, 0);
+                        GlStateManager.glVertex3f(halfW - w * fillPercent, -halfH, 0);
+
+                        GlStateManager.glTexCoord2f(1 - fillPercent, 1);
+                        GlStateManager.glVertex3f(halfW - w * fillPercent, halfH, 0);
+
+                        GlStateManager.glTexCoord2f(1, 1);
+                        GlStateManager.glVertex3f(halfW, halfH, 0);
+
+                        GlStateManager.glTexCoord2f(1, 0);
+                        GlStateManager.glVertex3f(halfW, -halfH, 0);
+
+                        GlStateManager.glEnd();
+                        break;
+
+                    case DIRECTION_TOP_TO_BOTTOM:
+                        GlStateManager.glBegin(GL_QUADS);
+
+                        GlStateManager.glTexCoord2f(0, 0);
+                        GlStateManager.glVertex3f(-halfW, -halfH, 0);
+
+                        GlStateManager.glTexCoord2f(0, fillPercent);
+                        GlStateManager.glVertex3f(-halfW, -halfH + h * fillPercent, 0);
+
+                        GlStateManager.glTexCoord2f(1, fillPercent);
+                        GlStateManager.glVertex3f(halfW, -halfH + h * fillPercent, 0);
+
+                        GlStateManager.glTexCoord2f(1, 0);
+                        GlStateManager.glVertex3f(halfW, -halfH, 0);
+
+                        GlStateManager.glEnd();
+                        break;
+
+                    case DIRECTION_BOTTOM_TO_TOP:
+                        GlStateManager.glBegin(GL_QUADS);
+
+                        GlStateManager.glTexCoord2f(0, 1 - fillPercent);
+                        GlStateManager.glVertex3f(-halfW, halfH - h * fillPercent, 0);
+
+                        GlStateManager.glTexCoord2f(0, 1);
+                        GlStateManager.glVertex3f(-halfW, halfH, 0);
+
+                        GlStateManager.glTexCoord2f(1, 1);
+                        GlStateManager.glVertex3f(halfW, halfH, 0);
+
+                        GlStateManager.glTexCoord2f(1, 1 - fillPercent);
+                        GlStateManager.glVertex3f(halfW, halfH - h * fillPercent, 0);
+
+                        GlStateManager.glEnd();
+                        break;
+                }
+            }
+        }
+
+        //Item
+        if (hotbarItem > 0 && hotbarItem < 10)
+        {
+            ItemStack stack = Minecraft.getMinecraft().player.inventory.getStackInSlot(hotbarItem - 1);
+            if (!stack.isEmpty())
+            {
+                GlStateManager.pushMatrix();
+                GlStateManager.scale(hotbarItemScale, hotbarItemScale, 1);
+                RenderHelper.enableGUIStandardItemLighting();
+
+                Minecraft.getMinecraft().getRenderItem().renderItemIntoGUI(stack, -8, -8);
+
+                RenderHelper.disableStandardItemLighting();
+                GlStateManager.popMatrix();
             }
         }
 
@@ -252,7 +336,7 @@ public class CBarElement extends CHUDElement
             textureManager.bindTexture(foreRL);
             GlStateManager.color(foreColor.rf(), foreColor.gf(), foreColor.bf(), foreColor.af());
 
-            int halfW = forePNG.getWidth() >>> 1, halfH = forePNG.getHeight() >>> 1;
+            float halfW = (float) ((forePNG.getWidth() >>> 1) * hScale), halfH = (float) ((forePNG.getHeight() >>> 1) * vScale);
             GlStateManager.glBegin(GL_QUADS);
             GlStateManager.glTexCoord2f(0, 0);
             GlStateManager.glVertex3f(-halfW, -halfH, 0);
@@ -273,11 +357,11 @@ public class CBarElement extends CHUDElement
         if (!text.equals("") && (textColor.af() > 0 || textOutlineColor.af() > 0))
         {
             GlStateManager.scale(textScale, textScale, 1);
-            String text = this.text.replaceAll("[@][mM][iI][nN]", min == null ? "null" : String.format("%.1f", min));
-            text = text.replaceAll("[@][cC][uU][rR][rR][eE][nN][tT]", current == null ? "null" : String.format("%.1f", current));
-            text = text.replaceAll("[@][mM][aA][xX]", max == null ? "null" : String.format("%.1f", max));
-            text = text.replaceAll("[@][lL][eE][vV][eE][lL]", "" + Minecraft.getMinecraft().player.experienceLevel);
-            text = text.replaceAll("[@][pP][eE][rR][cC][eE][nN][tT]", min == null || current == null || max == null ? "N/A%" : "" + Math.floor(100 * (current - min) / (max - min)) + "%");
+            String text = this.text.replaceAll(Tools.caselessRegex("@min"), min == null ? "null" : String.format("%.1f", min));
+            text = text.replaceAll(Tools.caselessRegex("@current"), current == null ? "null" : String.format("%.1f", current));
+            text = text.replaceAll(Tools.caselessRegex("@max"), max == null ? "null" : String.format("%.1f", max));
+            text = text.replaceAll(Tools.caselessRegex("@level"), "" + Minecraft.getMinecraft().player.experienceLevel);
+            text = text.replaceAll(Tools.caselessRegex("@percent"), min == null || current == null || max == null ? "N/A%" : "" + Math.floor(100 * (current - min) / (max - min)) + "%");
             OutlinedFontRenderer.draw(text, -(OutlinedFontRenderer.getStringWidth(text) >>> 1), -(OutlinedFontRenderer.LINE_HEIGHT >>> 1), textColor, textOutlineColor);
         }
     }
@@ -285,6 +369,7 @@ public class CBarElement extends CHUDElement
 
     protected Double parseVal(String s)
     {
+        Entity entity;
         switch (s.toLowerCase())
         {
             case "health":
@@ -301,6 +386,22 @@ public class CBarElement extends CHUDElement
 
             case "exp":
                 return (double) Minecraft.getMinecraft().player.experience;
+
+            case "attackcooldown":
+                return (double) Minecraft.getMinecraft().player.getCooledAttackStrength(0);
+
+            case "mountcharge":
+                return (double) Minecraft.getMinecraft().player.getHorseJumpPower();
+
+            case "mounthealth":
+                entity = Minecraft.getMinecraft().player.getRidingEntity();
+                if (!(entity instanceof EntityLivingBase)) return 0d;
+                return (double) ((EntityLivingBase) entity).getHealth();
+
+            case "mountmaxhealth":
+                entity = Minecraft.getMinecraft().player.getRidingEntity();
+                if (!(entity instanceof EntityLivingBase)) return 0d;
+                return (double) ((EntityLivingBase) entity).getMaxHealth();
 
             default:
                 return null;
@@ -332,6 +433,9 @@ public class CBarElement extends CHUDElement
         buf.writeInt(backColor.color());
         buf.writeInt(fillColor.color());
         buf.writeInt(foreColor.color());
+
+        buf.writeInt(hotbarItem);
+        buf.writeDouble(hotbarItemScale);
 
         ByteBufUtils.writeUTF8String(buf, text);
         buf.writeInt(textColor.color());
@@ -366,6 +470,9 @@ public class CBarElement extends CHUDElement
         fillColor = new Color(buf.readInt());
         foreColor = new Color(buf.readInt());
 
+        hotbarItem = buf.readInt();
+        hotbarItemScale = buf.readDouble();
+
         text = ByteBufUtils.readUTF8String(buf);
         textColor = new Color(buf.readInt());
         textOutlineColor = new Color(buf.readInt());
@@ -390,6 +497,9 @@ public class CBarElement extends CHUDElement
         CStringUTF8 cs = new CStringUTF8().set(backRL == null ? "" : backRL.toString()).save(stream).set(fillRL == null ? "" : fillRL.toString()).save(stream).set(foreRL == null ? "" : foreRL.toString()).save(stream);
 
         ci.set(backColor.color()).save(stream).set(fillColor.color()).save(stream).set(foreColor.color()).save(stream);
+
+        ci.set(hotbarItem).save(stream);
+        cd.set(hotbarItemScale).save(stream);
 
         cs.set(text).save(stream);
         ci.set(textColor.color()).save(stream);
@@ -426,6 +536,9 @@ public class CBarElement extends CHUDElement
         fillColor = new Color(ci.load(stream).value);
         foreColor = new Color(ci.load(stream).value);
 
+        hotbarItem = ci.load(stream).value;
+        hotbarItemScale = cd.load(stream).value;
+
         text = cs.load(stream).value;
         textColor = new Color(ci.load(stream).value);
         textOutlineColor = new Color(ci.load(stream).value);
@@ -441,7 +554,7 @@ public class CBarElement extends CHUDElement
 
     public static class BarEditingGUI extends GUIScreen
     {
-        protected String name = "";
+        protected String name;
 
         public BarEditingGUI(CBarElement element, String name)
         {
@@ -466,6 +579,9 @@ public class CBarElement extends CHUDElement
             GUILabeledBoolean enabled = new GUILabeledBoolean(this, "Enabled: ", element.enabled);
             enabled.input.addClickActions(() -> element.enabled = enabled.getValue());
 
+            GUILabeledBoolean useMCGUIScale = new GUILabeledBoolean(this, "Use MC GUI Scale: ", element.useMCGUIScale);
+            useMCGUIScale.input.addClickActions(() -> element.useMCGUIScale = useMCGUIScale.getValue());
+
             GUILabeledTextInput xOffset = new GUILabeledTextInput(this, "X Offset: ", "" + element.xOffset, FilterInt.INSTANCE);
             GUILabeledTextInput yOffset = new GUILabeledTextInput(this, "Y Offset: ", "" + element.yOffset, FilterInt.INSTANCE);
 
@@ -481,6 +597,7 @@ public class CBarElement extends CHUDElement
 
             GUILabeledTextInput hScale = new GUILabeledTextInput(this, "Horizontal Scaling: ", "" + element.hScale, FilterFloat.INSTANCE);
             GUILabeledTextInput vScale = new GUILabeledTextInput(this, "Vertical Scaling: ", "" + element.vScale, FilterFloat.INSTANCE);
+            GUILabeledTextInput angle = new GUILabeledTextInput(this, "Angle: ", "" + element.angle, FilterFloat.INSTANCE);
 
             GUIText directionLabel = new GUIText(this, "Direction: ");
             GUIText direction = new GUIText(this, DIRECTIONS_I_S.get(element.direction), getIdleColor(Color.WHITE), getHoverColor(Color.WHITE), Color.WHITE);
@@ -495,6 +612,9 @@ public class CBarElement extends CHUDElement
             GUIColor fillColor = new GUIColor(this, element.fillColor);
             GUIColor foreColor = new GUIColor(this, element.foreColor);
 
+            GUILabeledTextInput hotbarItem = new GUILabeledTextInput(this, "Hotbar Item (0 is none): ", "" + element.hotbarItem, HOTBAR_SLOT_FILTER);
+            GUILabeledTextInput hotbarItemScale = new GUILabeledTextInput(this, "Hotbar Item Scale: ", "" + element.hotbarItemScale, FilterFloat.INSTANCE);
+
             GUILabeledTextInput text = new GUILabeledTextInput(this, "Text: ", element.text, FilterNone.INSTANCE);
             GUIColor textColor = new GUIColor(this, element.textColor);
             GUIColor textOutlineColor = new GUIColor(this, element.textOutlineColor);
@@ -507,6 +627,8 @@ public class CBarElement extends CHUDElement
 
             scrollView.addAll(
                     enabled,
+                    new GUIElement(this, 1, 0),
+                    useMCGUIScale,
 
                     new GUITextSpacer(this),
                     xAnchorLabel.addClickActions(xAnchor::click),
@@ -535,6 +657,11 @@ public class CBarElement extends CHUDElement
                     vScale.addEditActions(() ->
                     {
                         if (vScale.valid()) element.vScale = FilterFloat.INSTANCE.parse(vScale.getText());
+                    }),
+                    new GUIElement(this, 1, 0),
+                    angle.addEditActions(() ->
+                    {
+                        if (angle.valid()) element.angle = FilterFloat.INSTANCE.parse(angle.getText());
                     }),
 
                     new GUITextSpacer(this),
@@ -566,6 +693,17 @@ public class CBarElement extends CHUDElement
                     new GUIElement(this, 1, 0),
                     new GUIText(this, "Foreground Color: "),
                     foreColor.addClickActions(() -> new ColorSelectionGUI(foreColor).addOnClosedActions(() -> element.foreColor = foreColor.getValue())),
+
+                    new GUITextSpacer(this),
+                    hotbarItem.addEditActions(() ->
+                    {
+                        if (hotbarItem.valid()) element.hotbarItem = HOTBAR_SLOT_FILTER.parse(hotbarItem.getText());
+                    }),
+                    new GUIElement(this, 1, 0),
+                    hotbarItemScale.addEditActions(() ->
+                    {
+                        if (hotbarItemScale.valid()) element.hotbarItemScale = FilterFloat.INSTANCE.parse(hotbarItemScale.getText());
+                    }),
 
                     new GUITextSpacer(this),
                     text.addEditActions(() -> element.text = text.getText()),

@@ -8,7 +8,10 @@ import com.fantasticsource.tools.component.CStringUTF8;
 import com.fantasticsource.tools.component.Component;
 import com.fantasticsource.tools.datastructures.Color;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.Display;
 
 import java.io.*;
@@ -16,6 +19,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static com.fantasticsource.tiamathud.TiamatHUD.MODID;
+import static com.fantasticsource.tiamathud.hudelement.CBarElement.DIRECTION_BOTTOM_TO_TOP;
+import static com.fantasticsource.tiamathud.hudelement.CBarElement.DIRECTION_RIGHT_TO_LEFT;
 
 public abstract class CHUDElement extends Component
 {
@@ -72,8 +77,10 @@ public abstract class CHUDElement extends Component
     }
 
 
-    public int xOffset = 0, yOffset = 50;
-    public int xAnchor = X_ANCHOR_CENTER, yAnchor = Y_ANCHOR_TOP;
+    public boolean enabled = true;
+    public boolean useMCGUIScale = true;
+    public int xOffset = 0, yOffset = 0;
+    public int xAnchor = X_ANCHOR_CENTER, yAnchor = Y_ANCHOR_CENTER;
 
 
     public static void saveAll()
@@ -139,32 +146,78 @@ public abstract class CHUDElement extends Component
 
     public static void initDefaults()
     {
-        //TODO Add all default settings here
+        CBarElement bar;
 
-        CBarElement bar = new CBarElement();
+        for (int i = 0; i < 9; i++)
+        {
+            bar = new CBarElement();
+            bar.yAnchor = Y_ANCHOR_BOTTOM;
+            bar.direction = DIRECTION_BOTTOM_TO_TOP;
+            bar.setBackRL(new ResourceLocation(MODID, "image/hotbar_slot.png"));
+            bar.backColor = new Color(40, 40, 40, 255);
+            bar.setFillRL(new ResourceLocation(MODID, "image/hotbar_slot.png"));
+            bar.fillColor = Color.GRAY;
+            bar.xOffset = -72 + i * 18;
+            bar.yOffset = -9;
+            bar.hotbarItem = i + 1;
+            bar.text = "";
+            HUD_ELEMENTS.put(bar, "Hotbar Slot " + (i + 1));
+        }
+
+        bar = new CBarElement();
         bar.yAnchor = Y_ANCHOR_BOTTOM;
-        bar.yOffset = -98;
-        bar.hScale = 2;
-        bar.vScale = 2;
-        bar.textScale = 2;
+        bar.setBackRL(new ResourceLocation(MODID, "image/2x2.png"));
+        bar.setFillRL(new ResourceLocation(MODID, "image/2x2.png"));
+        bar.yOffset = -35;
+        bar.hScale = 45;
+        bar.current = "mountcharge";
+        bar.max = "1";
+        bar.backColor = Color.BLACK.copy().setA(100);
+        bar.fillColor = Color.WHITE;
+        bar.text = "";
+        HUD_ELEMENTS.put(bar, "Mount Charge");
+
+        bar = new CBarElement();
+        bar.setBackRL(new ResourceLocation(MODID, "image/bar_back_alt.png"));
+        bar.yAnchor = Y_ANCHOR_BOTTOM;
+        bar.textScale = 0.5;
+        bar.xOffset = -24;
+        bar.yOffset = -30;
         bar.fillColor = Color.RED;
         HUD_ELEMENTS.put(bar, "Health");
 
         bar = new CBarElement();
-        bar.direction = CBarElement.DIRECTION_RIGHT_TO_LEFT;
+        bar.setBackRL(new ResourceLocation(MODID, "image/bar_back_alt.png"));
+        bar.angle = 180;
+        bar.direction = DIRECTION_RIGHT_TO_LEFT;
         bar.yAnchor = Y_ANCHOR_BOTTOM;
-        bar.xOffset = -71;
-        bar.yOffset = -71;
+        bar.textScale = 0.5;
+        bar.xOffset = 24;
+        bar.yOffset = -30;
+        bar.current = "mounthealth";
+        bar.max = "mountmaxhealth";
+        bar.fillColor = new Color(255, 100, 100);
+        HUD_ELEMENTS.put(bar, "Mount Health");
+
+        bar = new CBarElement();
+        bar.setBackRL(new ResourceLocation(MODID, "image/bar_back_alt.png"));
+        bar.yAnchor = Y_ANCHOR_BOTTOM;
+        bar.textScale = 0.5;
+        bar.xOffset = -24;
+        bar.yOffset = -22;
         bar.current = "food";
         bar.max = "20";
         bar.fillColor = Color.ORANGE;
         HUD_ELEMENTS.put(bar, "Food");
 
         bar = new CBarElement();
-        bar.direction = CBarElement.DIRECTION_RIGHT_TO_LEFT;
+        bar.setBackRL(new ResourceLocation(MODID, "image/bar_back_alt.png"));
+        bar.angle = 180;
+        bar.direction = DIRECTION_RIGHT_TO_LEFT;
         bar.yAnchor = Y_ANCHOR_BOTTOM;
-        bar.xOffset = -71;
-        bar.yOffset = -53;
+        bar.textScale = 0.5;
+        bar.xOffset = 24;
+        bar.yOffset = -22;
         bar.current = "saturation";
         bar.max = "20";
         bar.fillColor = Color.YELLOW;
@@ -172,8 +225,9 @@ public abstract class CHUDElement extends Component
 
         bar = new CBarElement();
         bar.yAnchor = Y_ANCHOR_BOTTOM;
-        bar.xOffset = 71;
-        bar.yOffset = -71;
+        bar.textScale = 0.5;
+        bar.xOffset = -69;
+        bar.yOffset = -26;
         bar.current = "breath";
         bar.max = "300";
         bar.fillColor = Color.AQUA;
@@ -181,8 +235,9 @@ public abstract class CHUDElement extends Component
 
         bar = new CBarElement();
         bar.yAnchor = Y_ANCHOR_BOTTOM;
-        bar.xOffset = 71;
-        bar.yOffset = -53;
+        bar.textScale = 0.5;
+        bar.xOffset = 69;
+        bar.yOffset = -26;
         bar.current = "exp";
         bar.max = "1";
         bar.fillColor = Color.GREEN;
@@ -190,8 +245,6 @@ public abstract class CHUDElement extends Component
         HUD_ELEMENTS.put(bar, "Exp");
     }
 
-
-    public boolean enabled = true;
 
     public final void tryDraw()
     {
@@ -201,7 +254,9 @@ public abstract class CHUDElement extends Component
             int displayW = Display.getWidth(), displayH = Display.getHeight();
             int x = xAnchor == X_ANCHOR_LEFT ? 0 : xAnchor == X_ANCHOR_RIGHT ? displayW : displayW >>> 1;
             int y = yAnchor == Y_ANCHOR_TOP ? 0 : yAnchor == Y_ANCHOR_BOTTOM ? displayH : displayH >>> 1;
-            GlStateManager.translate(x + xOffset, y + yOffset, 0);
+            int scale = useMCGUIScale ? new ScaledResolution(Minecraft.getMinecraft()).getScaleFactor() : 1;
+            GlStateManager.translate(x + xOffset * scale, y + yOffset * scale, 0);
+            GlStateManager.scale(scale, scale, 1);
 
 
             draw();
@@ -221,6 +276,7 @@ public abstract class CHUDElement extends Component
     public CHUDElement write(ByteBuf buf)
     {
         buf.writeBoolean(enabled);
+        buf.writeBoolean(useMCGUIScale);
 
         buf.writeInt(xAnchor);
         buf.writeInt(yAnchor);
@@ -234,6 +290,7 @@ public abstract class CHUDElement extends Component
     public CHUDElement read(ByteBuf buf)
     {
         enabled = buf.readBoolean();
+        useMCGUIScale = buf.readBoolean();
 
         xAnchor = buf.readInt();
         yAnchor = buf.readInt();
@@ -246,7 +303,7 @@ public abstract class CHUDElement extends Component
     @Override
     public CHUDElement save(OutputStream stream)
     {
-        new CBoolean().set(enabled).save(stream);
+        new CBoolean().set(enabled).save(stream).set(useMCGUIScale).save(stream);
 
         new CInt().set(xAnchor).save(stream).set(yAnchor).save(stream).set(xOffset).save(stream).set(yOffset).save(stream);
 
@@ -256,7 +313,9 @@ public abstract class CHUDElement extends Component
     @Override
     public CHUDElement load(InputStream stream)
     {
-        enabled = new CBoolean().load(stream).value;
+        CBoolean cb = new CBoolean();
+        enabled = cb.load(stream).value;
+        useMCGUIScale = cb.load(stream).value;
 
         CInt ci = new CInt();
         xAnchor = ci.load(stream).value;

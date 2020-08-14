@@ -23,10 +23,11 @@ public class CHUD extends Component
             renderVanillaFood = false,
             renderVanillaBreath = false,
             renderVanillaExp = false,
-            renderVanillaMountHealth = true,
-            renderVanillaMountCharge = true,
-            renderVanillaArmor = true,
-            renderVanillaHotbar = true,
+            renderVanillaMountHealth = false,
+            renderVanillaMountCharge = false,
+            renderVanillaCrosshair = true,
+            renderVanillaArmor = false,
+            renderVanillaHotbar = false,
             renderVanillaPotionEffects = true,
             renderVanillaNotificationText = true,
             renderVanillaChat = true,
@@ -37,8 +38,6 @@ public class CHUD extends Component
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void vanillaHUD(RenderGameOverlayEvent event)
     {
-        event.setCanceled(true);
-
         switch (event.getType())
         {
             case HEALTH:
@@ -63,6 +62,10 @@ public class CHUD extends Component
 
             case JUMPBAR:
                 if (!renderVanillaMountCharge) event.setCanceled(true);
+                return;
+
+            case CROSSHAIRS:
+                if (!renderVanillaCrosshair) event.setCanceled(true);
                 return;
 
             case ARMOR:
@@ -130,6 +133,7 @@ public class CHUD extends Component
         buf.writeBoolean(renderVanillaExp);
         buf.writeBoolean(renderVanillaMountHealth);
         buf.writeBoolean(renderVanillaMountCharge);
+        buf.writeBoolean(renderVanillaCrosshair);
         buf.writeBoolean(renderVanillaArmor);
         buf.writeBoolean(renderVanillaHotbar);
         buf.writeBoolean(renderVanillaPotionEffects);
@@ -150,6 +154,7 @@ public class CHUD extends Component
         renderVanillaExp = buf.readBoolean();
         renderVanillaMountHealth = buf.readBoolean();
         renderVanillaMountCharge = buf.readBoolean();
+        renderVanillaCrosshair = buf.readBoolean();
         renderVanillaArmor = buf.readBoolean();
         renderVanillaHotbar = buf.readBoolean();
         renderVanillaPotionEffects = buf.readBoolean();
@@ -172,6 +177,7 @@ public class CHUD extends Component
         cb.set(renderVanillaExp).save(stream);
         cb.set(renderVanillaMountHealth).save(stream);
         cb.set(renderVanillaMountCharge).save(stream);
+        cb.set(renderVanillaCrosshair).save(stream);
         cb.set(renderVanillaArmor).save(stream);
         cb.set(renderVanillaHotbar).save(stream);
         cb.set(renderVanillaPotionEffects).save(stream);
@@ -194,6 +200,7 @@ public class CHUD extends Component
         renderVanillaExp = cb.load(stream).value;
         renderVanillaMountHealth = cb.load(stream).value;
         renderVanillaMountCharge = cb.load(stream).value;
+        renderVanillaCrosshair = cb.load(stream).value;
         renderVanillaArmor = cb.load(stream).value;
         renderVanillaHotbar = cb.load(stream).value;
         renderVanillaPotionEffects = cb.load(stream).value;

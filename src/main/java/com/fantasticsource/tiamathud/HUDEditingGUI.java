@@ -146,6 +146,9 @@ public class HUDEditingGUI extends GUIScreen
         GUILabeledBoolean vanillaMountCharge = new GUILabeledBoolean(this, "Mount Charge: ", CHUD.renderVanillaMountCharge);
         vanillaMountCharge.input.addClickActions(() -> CHUD.renderVanillaMountCharge = vanillaMountCharge.getValue());
 
+        GUILabeledBoolean vanillaCrosshair = new GUILabeledBoolean(this, "Crosshair: ", CHUD.renderVanillaCrosshair);
+        vanillaCrosshair.input.addClickActions(() -> CHUD.renderVanillaCrosshair = vanillaCrosshair.getValue());
+
         GUILabeledBoolean vanillaArmor = new GUILabeledBoolean(this, "Armor: ", CHUD.renderVanillaArmor);
         vanillaArmor.input.addClickActions(() -> CHUD.renderVanillaArmor = vanillaArmor.getValue());
 
@@ -178,7 +181,7 @@ public class HUDEditingGUI extends GUIScreen
                 new GUIElement(this, 1, 0),
                 vanillaMountHP,
                 new GUIElement(this, 1, 0),
-                vanillaMountCharge,
+                vanillaCrosshair,
                 new GUIElement(this, 1, 0),
                 vanillaArmor,
                 new GUIElement(this, 1, 0),

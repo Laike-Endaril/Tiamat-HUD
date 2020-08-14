@@ -1,18 +1,6 @@
-AttackCooldown keyword
-MountCharge keyword
-
-
-
-Options for whether each vanilla element is rendered
-
-
-
 Default HUD replacements for
-Attack Cooldown
-Mount Charge
 Armor
 Armor Toughness
-Hotbar
 Potion Effects
 
 
