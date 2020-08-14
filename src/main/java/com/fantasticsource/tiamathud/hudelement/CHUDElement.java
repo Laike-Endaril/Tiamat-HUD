@@ -165,6 +165,7 @@ public abstract class CHUDElement extends Component
         }
 
         bar = new CBarElement();
+        bar.hideIfEmpty = true;
         bar.yAnchor = Y_ANCHOR_BOTTOM;
         bar.setBackRL(new ResourceLocation(MODID, "image/2x2.png"));
         bar.setFillRL(new ResourceLocation(MODID, "image/2x2.png"));
@@ -224,6 +225,7 @@ public abstract class CHUDElement extends Component
         HUD_ELEMENTS.put(bar, "Saturation");
 
         bar = new CBarElement();
+        bar.hideIfFull = true;
         bar.yAnchor = Y_ANCHOR_BOTTOM;
         bar.textScale = 0.5;
         bar.xOffset = -69;

@@ -13,6 +13,7 @@ import com.fantasticsource.mctools.gui.screen.ColorSelectionGUI;
 import com.fantasticsource.mctools.gui.screen.TextSelectionGUI;
 import com.fantasticsource.tools.PNG;
 import com.fantasticsource.tools.Tools;
+import com.fantasticsource.tools.component.CBoolean;
 import com.fantasticsource.tools.component.CDouble;
 import com.fantasticsource.tools.component.CInt;
 import com.fantasticsource.tools.component.CStringUTF8;
@@ -75,6 +76,8 @@ public class CBarElement extends CHUDElement
 
     protected boolean error = false;
 
+    public boolean hideIfFull = false, hideIfEmpty = false;
+
     public double hScale = 1, vScale = 1;
     public float angle = 0;
     public int direction = DIRECTION_LEFT_TO_RIGHT;
@@ -132,6 +135,7 @@ public class CBarElement extends CHUDElement
     @Override
     protected void draw() //Render
     {
+        //Hard stop
         if (fillPNG == null)
         {
             if (!error)
@@ -142,18 +146,6 @@ public class CBarElement extends CHUDElement
 
             return;
         }
-
-
-        GlStateManager.enableBlend();
-        GlStateManager.enableTexture2D();
-
-
-        Minecraft mc = Minecraft.getMinecraft();
-        TextureManager textureManager = mc.getTextureManager();
-
-
-        GlStateManager.pushMatrix();
-        GlStateManager.rotate(angle, 0, 0, -1);
 
 
         //Min, current, and max value computation
@@ -202,6 +194,22 @@ public class CBarElement extends CHUDElement
             }
             if (max == null) max = parseVal(this.max);
         }
+
+
+        //Hard stops
+        if (hideIfFull && current >= max) return;
+        if (hideIfEmpty && current <= min) return;
+
+
+        //OpenGL state
+        GlStateManager.enableBlend();
+        GlStateManager.enableTexture2D();
+
+        Minecraft mc = Minecraft.getMinecraft();
+        TextureManager textureManager = mc.getTextureManager();
+
+        GlStateManager.pushMatrix();
+        GlStateManager.rotate(angle, 0, 0, -1);
 
 
         //Background
@@ -421,6 +429,9 @@ public class CBarElement extends CHUDElement
     {
         super.write(buf);
 
+        buf.writeBoolean(hideIfFull);
+        buf.writeBoolean(hideIfEmpty);
+
         buf.writeDouble(hScale);
         buf.writeDouble(vScale);
 
@@ -453,6 +464,9 @@ public class CBarElement extends CHUDElement
     public CBarElement read(ByteBuf buf)
     {
         super.read(buf);
+
+        hideIfFull = buf.readBoolean();
+        hideIfEmpty = buf.readBoolean();
 
         hScale = buf.readDouble();
         vScale = buf.readDouble();
@@ -490,6 +504,8 @@ public class CBarElement extends CHUDElement
     {
         super.save(stream);
 
+        new CBoolean().set(hideIfFull).save(stream).set(hideIfEmpty).save(stream);
+
         CDouble cd = new CDouble().set(hScale).save(stream).set(vScale).save(stream);
 
         CInt ci = new CInt().set(direction).save(stream);
@@ -516,9 +532,13 @@ public class CBarElement extends CHUDElement
     {
         super.load(stream);
 
+        CBoolean cb = new CBoolean();
         CInt ci = new CInt();
         CDouble cd = new CDouble();
         CStringUTF8 cs = new CStringUTF8();
+
+        hideIfFull = cb.load(stream).value;
+        hideIfEmpty = cb.load(stream).value;
 
         hScale = cd.load(stream).value;
         vScale = cd.load(stream).value;
@@ -579,6 +599,12 @@ public class CBarElement extends CHUDElement
             GUILabeledBoolean enabled = new GUILabeledBoolean(this, "Enabled: ", element.enabled);
             enabled.input.addClickActions(() -> element.enabled = enabled.getValue());
 
+            GUILabeledBoolean hideIfFull = new GUILabeledBoolean(this, "Hide if Full: ", element.hideIfFull);
+            hideIfFull.input.addClickActions(() -> element.hideIfFull = hideIfFull.getValue());
+
+            GUILabeledBoolean hideIfEmpty = new GUILabeledBoolean(this, "Hide if Empty: ", element.hideIfEmpty);
+            hideIfEmpty.input.addClickActions(() -> element.hideIfEmpty = hideIfEmpty.getValue());
+
             GUILabeledBoolean useMCGUIScale = new GUILabeledBoolean(this, "Use MC GUI Scale: ", element.useMCGUIScale);
             useMCGUIScale.input.addClickActions(() -> element.useMCGUIScale = useMCGUIScale.getValue());
 
@@ -627,6 +653,10 @@ public class CBarElement extends CHUDElement
 
             scrollView.addAll(
                     enabled,
+                    new GUIElement(this, 1, 0),
+                    hideIfFull,
+                    new GUIElement(this, 1, 0),
+                    hideIfEmpty,
                     new GUIElement(this, 1, 0),
                     useMCGUIScale,
 
