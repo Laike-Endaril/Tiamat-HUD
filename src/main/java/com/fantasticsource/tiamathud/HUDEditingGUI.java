@@ -158,9 +158,6 @@ public class HUDEditingGUI extends GUIScreen
         GUILabeledBoolean vanillaPotionEffects = new GUILabeledBoolean(this, "Potion Effects: ", CHUD.renderVanillaPotionEffects);
         vanillaPotionEffects.input.addClickActions(() -> CHUD.renderVanillaPotionEffects = vanillaPotionEffects.getValue());
 
-        GUILabeledBoolean vanillaNotificationText = new GUILabeledBoolean(this, "Notification Text: ", CHUD.renderVanillaNotificationText);
-        vanillaNotificationText.input.addClickActions(() -> CHUD.renderVanillaNotificationText = vanillaNotificationText.getValue());
-
         GUILabeledBoolean vanillaChat = new GUILabeledBoolean(this, "Chat: ", CHUD.renderVanillaChat);
         vanillaChat.input.addClickActions(() -> CHUD.renderVanillaChat = vanillaChat.getValue());
 
@@ -188,8 +185,6 @@ public class HUDEditingGUI extends GUIScreen
                 vanillaHotbar,
                 new GUIElement(this, 1, 0),
                 vanillaPotionEffects,
-                new GUIElement(this, 1, 0),
-                vanillaNotificationText,
                 new GUIElement(this, 1, 0),
                 vanillaChat,
                 new GUIElement(this, 1, 0),

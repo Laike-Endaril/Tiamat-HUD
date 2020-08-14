@@ -29,7 +29,6 @@ public class CHUD extends Component
             renderVanillaArmor = false,
             renderVanillaHotbar = false,
             renderVanillaPotionEffects = true,
-            renderVanillaNotificationText = true,
             renderVanillaChat = true,
             renderVanillaBossInfo = true,
             renderVanillaSubtitles = true;
@@ -38,6 +37,8 @@ public class CHUD extends Component
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void vanillaHUD(RenderGameOverlayEvent event)
     {
+        if (!event.isCancelable()) return;
+
         switch (event.getType())
         {
             case HEALTH:
@@ -78,10 +79,6 @@ public class CHUD extends Component
 
             case POTION_ICONS:
                 if (!renderVanillaPotionEffects) event.setCanceled(true);
-                return;
-
-            case TEXT:
-                if (!renderVanillaNotificationText) event.setCanceled(true);
                 return;
 
             case CHAT:
@@ -137,7 +134,6 @@ public class CHUD extends Component
         buf.writeBoolean(renderVanillaArmor);
         buf.writeBoolean(renderVanillaHotbar);
         buf.writeBoolean(renderVanillaPotionEffects);
-        buf.writeBoolean(renderVanillaNotificationText);
         buf.writeBoolean(renderVanillaChat);
         buf.writeBoolean(renderVanillaBossInfo);
         buf.writeBoolean(renderVanillaSubtitles);
@@ -158,7 +154,6 @@ public class CHUD extends Component
         renderVanillaArmor = buf.readBoolean();
         renderVanillaHotbar = buf.readBoolean();
         renderVanillaPotionEffects = buf.readBoolean();
-        renderVanillaNotificationText = buf.readBoolean();
         renderVanillaChat = buf.readBoolean();
         renderVanillaBossInfo = buf.readBoolean();
         renderVanillaSubtitles = buf.readBoolean();
@@ -181,7 +176,6 @@ public class CHUD extends Component
         cb.set(renderVanillaArmor).save(stream);
         cb.set(renderVanillaHotbar).save(stream);
         cb.set(renderVanillaPotionEffects).save(stream);
-        cb.set(renderVanillaNotificationText).save(stream);
         cb.set(renderVanillaChat).save(stream);
         cb.set(renderVanillaBossInfo).save(stream);
         cb.set(renderVanillaSubtitles).save(stream);
@@ -204,7 +198,6 @@ public class CHUD extends Component
         renderVanillaArmor = cb.load(stream).value;
         renderVanillaHotbar = cb.load(stream).value;
         renderVanillaPotionEffects = cb.load(stream).value;
-        renderVanillaNotificationText = cb.load(stream).value;
         renderVanillaChat = cb.load(stream).value;
         renderVanillaBossInfo = cb.load(stream).value;
         renderVanillaSubtitles = cb.load(stream).value;
