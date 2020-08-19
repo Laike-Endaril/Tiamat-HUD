@@ -17,9 +17,12 @@ public class TiamatHUD
     @Mod.EventHandler
     public static void preInit(FMLPreInitializationEvent event)
     {
+        Network.init();
+
         if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT)
         {
             MinecraftForge.EVENT_BUS.register(CHUD.class);
+            MinecraftForge.EVENT_BUS.register(CustomHUDData.class);
             Keys.init(event);
             CHUDElement.loadAll();
         }

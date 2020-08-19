@@ -11,6 +11,7 @@ import com.fantasticsource.mctools.gui.element.text.filter.*;
 import com.fantasticsource.mctools.gui.element.view.GUIScrollView;
 import com.fantasticsource.mctools.gui.screen.ColorSelectionGUI;
 import com.fantasticsource.mctools.gui.screen.TextSelectionGUI;
+import com.fantasticsource.tiamathud.CustomHUDData;
 import com.fantasticsource.tools.PNG;
 import com.fantasticsource.tools.Tools;
 import com.fantasticsource.tools.component.*;
@@ -482,7 +483,7 @@ public class CBarElement extends CHUDElement
                 return (double) ((EntityLivingBase) entity).getMaxHealth();
 
             default:
-                return null;
+                return CustomHUDData.DATA.get(s);
         }
     }
 
