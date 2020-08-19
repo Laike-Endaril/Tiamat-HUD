@@ -18,20 +18,27 @@ import com.fantasticsource.tools.component.CDouble;
 import com.fantasticsource.tools.component.CInt;
 import com.fantasticsource.tools.component.CStringUTF8;
 import com.fantasticsource.tools.datastructures.Color;
+import com.fantasticsource.tools.datastructures.ExplicitPriorityQueue;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
+import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemStack;
+import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.fml.common.network.ByteBufUtils;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 
 import static com.fantasticsource.tiamathud.TiamatHUD.MODID;
@@ -40,6 +47,7 @@ import static org.lwjgl.opengl.GL11.GL_QUADS;
 public class CBarElement extends CHUDElement
 {
     protected static final FilterRangedInt HOTBAR_SLOT_FILTER = FilterRangedInt.get(0, 9);
+    protected static final FilterRangedInt POTION_EFFECT_FILTER = FilterRangedInt.get(0, Integer.MAX_VALUE);
 
     public static final ResourceLocation
             DEFAULT_BACK_RL = new ResourceLocation(MODID, "image/bar_back.png"),
@@ -88,6 +96,9 @@ public class CBarElement extends CHUDElement
 
     public int hotbarItem = 0;
     public double hotbarItemScale = 1;
+
+    public int potionEffect = 0;
+    public double potionEffectScale = 1;
 
     public String text = "@current/@max";
     public Color textColor = Color.WHITE, textOutlineColor = Color.BLACK;
@@ -148,13 +159,28 @@ public class CBarElement extends CHUDElement
         }
 
 
-        //Min, current, and max value computation
+        //Min, current, and max value computation (and hard stop)
         Double min, current, max;
+        PotionEffect currentPotionEffect = null;
         if (hotbarItem > 0 && hotbarItem < 10)
         {
             min = 0d;
             current = (double) Minecraft.getMinecraft().player.getCooledAttackStrength(0);
             max = 1d;
+        }
+        else if (potionEffect > 0)
+        {
+            Collection<PotionEffect> potionEffects = Minecraft.getMinecraft().player.getActivePotionEffects();
+            if (potionEffect > potionEffects.size()) return;
+
+            ExplicitPriorityQueue<PotionEffect> queue = new ExplicitPriorityQueue<>(potionEffects.size());
+            for (PotionEffect potionEffect : potionEffects) queue.add(potionEffect, potionEffect.getDuration());
+
+            currentPotionEffect = queue.toArray(new PotionEffect[0])[potionEffect - 1];
+
+            min = 0d;
+            current = currentPotionEffect.getDuration() / 20d;
+            max = 30d;
         }
         else
         {
@@ -321,7 +347,7 @@ public class CBarElement extends CHUDElement
             }
         }
 
-        //Item
+        //Item or potion effect
         if (hotbarItem > 0 && hotbarItem < 10)
         {
             ItemStack stack = Minecraft.getMinecraft().player.inventory.getStackInSlot(hotbarItem - 1);
@@ -336,6 +362,25 @@ public class CBarElement extends CHUDElement
                 RenderHelper.disableStandardItemLighting();
                 GlStateManager.popMatrix();
             }
+        }
+        else if (currentPotionEffect != null)
+        {
+            Minecraft.getMinecraft().getTextureManager().bindTexture(GuiContainer.INVENTORY_BACKGROUND);
+
+            GlStateManager.color(1, 1, 1, 1);
+//            RenderHelper.enableGUIStandardItemLighting();
+
+            Tessellator tessellator = Tessellator.getInstance();
+            BufferBuilder bufferbuilder = tessellator.getBuffer();
+            bufferbuilder.begin(7, DefaultVertexFormats.POSITION_TEX);
+            int index = currentPotionEffect.getPotion().getStatusIconIndex(), x = -9, y = -9, u = index % 8 * 18, v = 198 + index / 8 * 18, width = 18, height = 18;
+            bufferbuilder.pos(x, y + height, 0).tex(u * 0.00390625, (v + height) * 0.00390625).endVertex();
+            bufferbuilder.pos(x + width, y + height, 0).tex((u + width) * 0.00390625, (v + height) * 0.00390625).endVertex();
+            bufferbuilder.pos(x + width, y, 0).tex((u + width) * 0.00390625, v * 0.00390625).endVertex();
+            bufferbuilder.pos(x, y, 0).tex(u * 0.00390625, v * 0.00390625).endVertex();
+            tessellator.draw();
+
+//            RenderHelper.disableStandardItemLighting();
         }
 
         //Foreground
@@ -362,15 +407,33 @@ public class CBarElement extends CHUDElement
 
 
         //Text
-        if (!text.equals("") && (textColor.af() > 0 || textOutlineColor.af() > 0))
+        if ((textColor.af() > 0 || textOutlineColor.af() > 0))
         {
-            GlStateManager.scale(textScale, textScale, 1);
-            String text = this.text.replaceAll(Tools.caselessRegex("@min"), min == null ? "null" : String.format("%.1f", min));
-            text = text.replaceAll(Tools.caselessRegex("@current"), current == null ? "null" : String.format("%.1f", current));
-            text = text.replaceAll(Tools.caselessRegex("@max"), max == null ? "null" : String.format("%.1f", max));
-            text = text.replaceAll(Tools.caselessRegex("@level"), "" + Minecraft.getMinecraft().player.experienceLevel);
-            text = text.replaceAll(Tools.caselessRegex("@percent"), min == null || current == null || max == null ? "N/A%" : "" + Math.floor(100 * (current - min) / (max - min)) + "%");
-            OutlinedFontRenderer.draw(text, -(OutlinedFontRenderer.getStringWidth(text) >>> 1), -(OutlinedFontRenderer.LINE_HEIGHT >>> 1), textColor, textOutlineColor);
+            if (currentPotionEffect != null)
+            {
+                GlStateManager.scale(textScale, textScale, 1);
+                int seconds = currentPotionEffect.getDuration() / 20 + 1;
+                int minutes = seconds / 60;
+                seconds %= 60;
+                int hours = minutes / 60;
+                minutes %= 60;
+
+                String s = "" + seconds;
+                if (minutes > 0 || hours > 0) s = minutes + ":" + (seconds < 10 ? "0" + s : s);
+                if (hours > 0) s = hours + ":" + (minutes < 10 ? "0" + s : s);
+
+                OutlinedFontRenderer.draw(s, -(OutlinedFontRenderer.getStringWidth(s) >>> 1), -(OutlinedFontRenderer.LINE_HEIGHT >>> 1), textColor, textOutlineColor);
+            }
+            else if (!text.equals(""))
+            {
+                GlStateManager.scale(textScale, textScale, 1);
+                String s = text.replaceAll(Tools.caselessRegex("@min"), min == null ? "null" : String.format("%.1f", min));
+                s = s.replaceAll(Tools.caselessRegex("@current"), current == null ? "null" : String.format("%.1f", current));
+                s = s.replaceAll(Tools.caselessRegex("@max"), max == null ? "null" : String.format("%.1f", max));
+                s = s.replaceAll(Tools.caselessRegex("@level"), "" + Minecraft.getMinecraft().player.experienceLevel);
+                s = s.replaceAll(Tools.caselessRegex("@percent"), min == null || current == null || max == null ? "N/A%" : "" + Math.floor(100 * (current - min) / (max - min)) + "%");
+                OutlinedFontRenderer.draw(s, -(OutlinedFontRenderer.getStringWidth(s) >>> 1), -(OutlinedFontRenderer.LINE_HEIGHT >>> 1), textColor, textOutlineColor);
+            }
         }
     }
 
@@ -448,6 +511,9 @@ public class CBarElement extends CHUDElement
         buf.writeInt(hotbarItem);
         buf.writeDouble(hotbarItemScale);
 
+        buf.writeInt(potionEffect);
+        buf.writeDouble(potionEffectScale);
+
         ByteBufUtils.writeUTF8String(buf, text);
         buf.writeInt(textColor.color());
         buf.writeInt(textOutlineColor.color());
@@ -487,6 +553,9 @@ public class CBarElement extends CHUDElement
         hotbarItem = buf.readInt();
         hotbarItemScale = buf.readDouble();
 
+        potionEffect = buf.readInt();
+        potionEffectScale = buf.readDouble();
+
         text = ByteBufUtils.readUTF8String(buf);
         textColor = new Color(buf.readInt());
         textOutlineColor = new Color(buf.readInt());
@@ -516,6 +585,9 @@ public class CBarElement extends CHUDElement
 
         ci.set(hotbarItem).save(stream);
         cd.set(hotbarItemScale).save(stream);
+
+        ci.set(potionEffect).save(stream);
+        cd.set(potionEffectScale).save(stream);
 
         cs.set(text).save(stream);
         ci.set(textColor.color()).save(stream);
@@ -558,6 +630,9 @@ public class CBarElement extends CHUDElement
 
         hotbarItem = ci.load(stream).value;
         hotbarItemScale = cd.load(stream).value;
+
+        potionEffect = ci.load(stream).value;
+        potionEffectScale = cd.load(stream).value;
 
         text = cs.load(stream).value;
         textColor = new Color(ci.load(stream).value);
@@ -638,8 +713,11 @@ public class CBarElement extends CHUDElement
             GUIColor fillColor = new GUIColor(this, element.fillColor);
             GUIColor foreColor = new GUIColor(this, element.foreColor);
 
-            GUILabeledTextInput hotbarItem = new GUILabeledTextInput(this, "Hotbar Item (0 is none): ", "" + element.hotbarItem, HOTBAR_SLOT_FILTER);
+            GUILabeledTextInput hotbarItem = new GUILabeledTextInput(this, "Hotbar Item Slot (0 is none): ", "" + element.hotbarItem, HOTBAR_SLOT_FILTER);
             GUILabeledTextInput hotbarItemScale = new GUILabeledTextInput(this, "Hotbar Item Scale: ", "" + element.hotbarItemScale, FilterFloat.INSTANCE);
+
+            GUILabeledTextInput potionEffect = new GUILabeledTextInput(this, "Potion Effect Slot (0 is none): ", "" + element.potionEffect, POTION_EFFECT_FILTER);
+            GUILabeledTextInput potionEffectScale = new GUILabeledTextInput(this, "Potion Effect Icon Scale: ", "" + element.potionEffectScale, FilterFloat.INSTANCE);
 
             GUILabeledTextInput text = new GUILabeledTextInput(this, "Text: ", element.text, FilterNone.INSTANCE);
             GUIColor textColor = new GUIColor(this, element.textColor);
@@ -733,6 +811,17 @@ public class CBarElement extends CHUDElement
                     hotbarItemScale.addEditActions(() ->
                     {
                         if (hotbarItemScale.valid()) element.hotbarItemScale = FilterFloat.INSTANCE.parse(hotbarItemScale.getText());
+                    }),
+
+                    new GUITextSpacer(this),
+                    potionEffect.addEditActions(() ->
+                    {
+                        if (potionEffect.valid()) element.potionEffect = POTION_EFFECT_FILTER.parse(potionEffect.getText());
+                    }),
+                    new GUIElement(this, 1, 0),
+                    potionEffectScale.addEditActions(() ->
+                    {
+                        if (potionEffectScale.valid()) element.potionEffectScale = FilterFloat.INSTANCE.parse(potionEffectScale.getText());
                     }),
 
                     new GUITextSpacer(this),

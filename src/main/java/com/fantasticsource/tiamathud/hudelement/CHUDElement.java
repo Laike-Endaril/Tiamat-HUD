@@ -148,6 +148,24 @@ public abstract class CHUDElement extends Component
     {
         CBarElement bar;
 
+        for (int i = 0; i < 30; i++)
+        {
+            bar = new CBarElement();
+            bar.xAnchor = X_ANCHOR_RIGHT;
+            bar.yAnchor = Y_ANCHOR_TOP;
+            bar.direction = DIRECTION_BOTTOM_TO_TOP;
+            bar.setBackRL(new ResourceLocation(MODID, "image/hotbar_slot.png"));
+            bar.backColor = new Color(40, 40, 40, 255);
+            bar.setFillRL(new ResourceLocation(MODID, "image/hotbar_slot.png"));
+            bar.fillColor = Color.GRAY;
+            bar.xOffset = -9 - (i % 10) * 18;
+            bar.yOffset = 9 + (i / 10) * 18;
+            bar.potionEffect = i + 1;
+            bar.text = "";
+            bar.textScale = 0.5;
+            HUD_ELEMENTS.put(bar, "Potion Effect Slot " + (i + 1));
+        }
+
         for (int i = 0; i < 9; i++)
         {
             bar = new CBarElement();

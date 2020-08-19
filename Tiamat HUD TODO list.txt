@@ -1,7 +1,8 @@
-Default HUD replacements for
-Armor
-Armor Toughness
-Potion Effects
+Compat for...
+...mana/stamina (below)
+...tiamat weaponsets
+...tiamat skills
+...tiamat consumables
 
 
 

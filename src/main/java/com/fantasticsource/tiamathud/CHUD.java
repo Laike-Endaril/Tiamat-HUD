@@ -28,7 +28,7 @@ public class CHUD extends Component
             renderVanillaCrosshair = true,
             renderVanillaArmor = false,
             renderVanillaHotbar = false,
-            renderVanillaPotionEffects = true,
+            renderVanillaPotionEffects = false,
             renderVanillaChat = true,
             renderVanillaBossInfo = true,
             renderVanillaSubtitles = true;
