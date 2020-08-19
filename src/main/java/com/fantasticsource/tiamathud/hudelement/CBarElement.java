@@ -13,10 +13,7 @@ import com.fantasticsource.mctools.gui.screen.ColorSelectionGUI;
 import com.fantasticsource.mctools.gui.screen.TextSelectionGUI;
 import com.fantasticsource.tools.PNG;
 import com.fantasticsource.tools.Tools;
-import com.fantasticsource.tools.component.CBoolean;
-import com.fantasticsource.tools.component.CDouble;
-import com.fantasticsource.tools.component.CInt;
-import com.fantasticsource.tools.component.CStringUTF8;
+import com.fantasticsource.tools.component.*;
 import com.fantasticsource.tools.datastructures.Color;
 import com.fantasticsource.tools.datastructures.ExplicitPriorityQueue;
 import io.netty.buffer.ByteBuf;
@@ -98,9 +95,11 @@ public class CBarElement extends CHUDElement
     public double hotbarItemScale = 1;
 
     public int potionEffect = 0;
+    public int potionEffectRelativeX = 0, potionEffectRelativeY = 0;
     public double potionEffectScale = 1;
 
     public String text = "@current/@max";
+    public int textRelativeX = 0, textRelativeY = 0;
     public Color textColor = Color.WHITE, textOutlineColor = Color.BLACK;
     public double textScale = 1;
 
@@ -365,10 +364,12 @@ public class CBarElement extends CHUDElement
         }
         else if (currentPotionEffect != null)
         {
+            GlStateManager.color(1, 1, 1, 1);
             Minecraft.getMinecraft().getTextureManager().bindTexture(GuiContainer.INVENTORY_BACKGROUND);
 
-            GlStateManager.color(1, 1, 1, 1);
-//            RenderHelper.enableGUIStandardItemLighting();
+            GlStateManager.pushMatrix();
+            GlStateManager.translate(potionEffectRelativeX, potionEffectRelativeY, 0);
+            GlStateManager.scale(potionEffectScale, potionEffectScale, 1);
 
             Tessellator tessellator = Tessellator.getInstance();
             BufferBuilder bufferbuilder = tessellator.getBuffer();
@@ -380,7 +381,7 @@ public class CBarElement extends CHUDElement
             bufferbuilder.pos(x, y, 0).tex(u * 0.00390625, v * 0.00390625).endVertex();
             tessellator.draw();
 
-//            RenderHelper.disableStandardItemLighting();
+            GlStateManager.popMatrix();
         }
 
         //Foreground
@@ -411,16 +412,22 @@ public class CBarElement extends CHUDElement
         {
             if (currentPotionEffect != null)
             {
+                GlStateManager.translate(textRelativeX, textRelativeY, 0);
                 GlStateManager.scale(textScale, textScale, 1);
+
+
+                //Somewhere around 27 mins is "max potion duration"
+                String s;
                 int seconds = currentPotionEffect.getDuration() / 20 + 1;
                 int minutes = seconds / 60;
                 seconds %= 60;
-                int hours = minutes / 60;
-                minutes %= 60;
 
-                String s = "" + seconds;
-                if (minutes > 0 || hours > 0) s = minutes + ":" + (seconds < 10 ? "0" + s : s);
-                if (hours > 0) s = hours + ":" + (minutes < 10 ? "0" + s : s);
+                if (minutes > 9) s = minutes + "m";
+                else
+                {
+                    s = "" + seconds;
+                    if (minutes > 0) s = minutes + ":" + (seconds < 10 ? "0" + s : s);
+                }
 
                 OutlinedFontRenderer.draw(s, -(OutlinedFontRenderer.getStringWidth(s) >>> 1), -(OutlinedFontRenderer.LINE_HEIGHT >>> 1), textColor, textOutlineColor);
             }
@@ -498,6 +505,7 @@ public class CBarElement extends CHUDElement
         buf.writeDouble(hScale);
         buf.writeDouble(vScale);
 
+        buf.writeFloat(angle);
         buf.writeInt(direction);
 
         ByteBufUtils.writeUTF8String(buf, backRL == null ? "" : backRL.toString());
@@ -512,9 +520,13 @@ public class CBarElement extends CHUDElement
         buf.writeDouble(hotbarItemScale);
 
         buf.writeInt(potionEffect);
+        buf.writeInt(potionEffectRelativeX);
+        buf.writeInt(potionEffectRelativeY);
         buf.writeDouble(potionEffectScale);
 
         ByteBufUtils.writeUTF8String(buf, text);
+        buf.writeInt(textRelativeX);
+        buf.writeInt(textRelativeY);
         buf.writeInt(textColor.color());
         buf.writeInt(textOutlineColor.color());
         buf.writeDouble(textScale);
@@ -537,6 +549,7 @@ public class CBarElement extends CHUDElement
         hScale = buf.readDouble();
         vScale = buf.readDouble();
 
+        angle = buf.readFloat();
         direction = buf.readInt();
 
         String s = ByteBufUtils.readUTF8String(buf);
@@ -554,9 +567,13 @@ public class CBarElement extends CHUDElement
         hotbarItemScale = buf.readDouble();
 
         potionEffect = buf.readInt();
+        potionEffectRelativeX = buf.readInt();
+        potionEffectRelativeY = buf.readInt();
         potionEffectScale = buf.readDouble();
 
         text = ByteBufUtils.readUTF8String(buf);
+        textRelativeX = buf.readInt();
+        textRelativeY = buf.readInt();
         textColor = new Color(buf.readInt());
         textOutlineColor = new Color(buf.readInt());
         textScale = buf.readDouble();
@@ -577,6 +594,7 @@ public class CBarElement extends CHUDElement
 
         CDouble cd = new CDouble().set(hScale).save(stream).set(vScale).save(stream);
 
+        new CFloat().set(angle).save(stream);
         CInt ci = new CInt().set(direction).save(stream);
 
         CStringUTF8 cs = new CStringUTF8().set(backRL == null ? "" : backRL.toString()).save(stream).set(fillRL == null ? "" : fillRL.toString()).save(stream).set(foreRL == null ? "" : foreRL.toString()).save(stream);
@@ -586,11 +604,11 @@ public class CBarElement extends CHUDElement
         ci.set(hotbarItem).save(stream);
         cd.set(hotbarItemScale).save(stream);
 
-        ci.set(potionEffect).save(stream);
+        ci.set(potionEffect).save(stream).set(potionEffectRelativeX).save(stream).set(potionEffectRelativeY).save(stream);
         cd.set(potionEffectScale).save(stream);
 
         cs.set(text).save(stream);
-        ci.set(textColor.color()).save(stream);
+        ci.set(textRelativeX).save(stream).set(textRelativeY).save(stream).set(textColor.color()).save(stream);
         ci.set(textOutlineColor.color()).save(stream);
         cd.set(textScale).save(stream);
 
@@ -615,6 +633,7 @@ public class CBarElement extends CHUDElement
         hScale = cd.load(stream).value;
         vScale = cd.load(stream).value;
 
+        angle = new CFloat().load(stream).value;
         direction = ci.load(stream).value;
 
         String s = cs.load(stream).value;
@@ -632,9 +651,13 @@ public class CBarElement extends CHUDElement
         hotbarItemScale = cd.load(stream).value;
 
         potionEffect = ci.load(stream).value;
+        potionEffectRelativeX = ci.load(stream).value;
+        potionEffectRelativeY = ci.load(stream).value;
         potionEffectScale = cd.load(stream).value;
 
         text = cs.load(stream).value;
+        textRelativeX = ci.load(stream).value;
+        textRelativeY = ci.load(stream).value;
         textColor = new Color(ci.load(stream).value);
         textOutlineColor = new Color(ci.load(stream).value);
         textScale = cd.load(stream).value;
@@ -717,9 +740,13 @@ public class CBarElement extends CHUDElement
             GUILabeledTextInput hotbarItemScale = new GUILabeledTextInput(this, "Hotbar Item Scale: ", "" + element.hotbarItemScale, FilterFloat.INSTANCE);
 
             GUILabeledTextInput potionEffect = new GUILabeledTextInput(this, "Potion Effect Slot (0 is none): ", "" + element.potionEffect, POTION_EFFECT_FILTER);
+            GUILabeledTextInput potionEffectRelativeX = new GUILabeledTextInput(this, "Potion Effect Relative X: ", "" + element.potionEffectRelativeX, FilterInt.INSTANCE);
+            GUILabeledTextInput potionEffectRelativeY = new GUILabeledTextInput(this, "Potion Effect Relative Y: ", "" + element.potionEffectRelativeY, FilterInt.INSTANCE);
             GUILabeledTextInput potionEffectScale = new GUILabeledTextInput(this, "Potion Effect Icon Scale: ", "" + element.potionEffectScale, FilterFloat.INSTANCE);
 
             GUILabeledTextInput text = new GUILabeledTextInput(this, "Text: ", element.text, FilterNone.INSTANCE);
+            GUILabeledTextInput textRelativeX = new GUILabeledTextInput(this, "Text Relative X: ", "" + element.textRelativeX, FilterInt.INSTANCE);
+            GUILabeledTextInput textRelativeY = new GUILabeledTextInput(this, "Text Relative Y: ", "" + element.textRelativeY, FilterInt.INSTANCE);
             GUIColor textColor = new GUIColor(this, element.textColor);
             GUIColor textOutlineColor = new GUIColor(this, element.textOutlineColor);
             GUILabeledTextInput textScale = new GUILabeledTextInput(this, "Text Scale: ", "" + element.textScale, FilterFloat.INSTANCE);
@@ -819,6 +846,16 @@ public class CBarElement extends CHUDElement
                         if (potionEffect.valid()) element.potionEffect = POTION_EFFECT_FILTER.parse(potionEffect.getText());
                     }),
                     new GUIElement(this, 1, 0),
+                    potionEffectRelativeX.addEditActions(() ->
+                    {
+                        if (potionEffectRelativeX.valid()) element.potionEffectRelativeX = FilterInt.INSTANCE.parse(potionEffectRelativeX.getText());
+                    }),
+                    new GUIElement(this, 1, 0),
+                    potionEffectRelativeY.addEditActions(() ->
+                    {
+                        if (potionEffectRelativeY.valid()) element.potionEffectRelativeY = FilterInt.INSTANCE.parse(potionEffectRelativeY.getText());
+                    }),
+                    new GUIElement(this, 1, 0),
                     potionEffectScale.addEditActions(() ->
                     {
                         if (potionEffectScale.valid()) element.potionEffectScale = FilterFloat.INSTANCE.parse(potionEffectScale.getText());
@@ -826,6 +863,16 @@ public class CBarElement extends CHUDElement
 
                     new GUITextSpacer(this),
                     text.addEditActions(() -> element.text = text.getText()),
+                    new GUIElement(this, 1, 0),
+                    textRelativeX.addEditActions(() ->
+                    {
+                        if (textRelativeX.valid()) element.textRelativeX = FilterInt.INSTANCE.parse(textRelativeX.getText());
+                    }),
+                    new GUIElement(this, 1, 0),
+                    textRelativeY.addEditActions(() ->
+                    {
+                        if (textRelativeY.valid()) element.textRelativeY = FilterInt.INSTANCE.parse(textRelativeY.getText());
+                    }),
                     new GUIElement(this, 1, 0),
                     new GUIText(this, "Text Color: "),
                     textColor.addClickActions(() -> new ColorSelectionGUI(textColor).addOnClosedActions(() -> element.textColor = textColor.getValue())),

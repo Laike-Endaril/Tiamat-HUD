@@ -20,6 +20,7 @@ import java.util.Map;
 
 import static com.fantasticsource.tiamathud.TiamatHUD.MODID;
 import static com.fantasticsource.tiamathud.hudelement.CBarElement.DIRECTION_BOTTOM_TO_TOP;
+import static com.fantasticsource.tiamathud.hudelement.CBarElement.DIRECTION_LEFT_TO_RIGHT;
 import static com.fantasticsource.tiamathud.hudelement.CBarElement.DIRECTION_RIGHT_TO_LEFT;
 
 public abstract class CHUDElement extends Component
@@ -153,15 +154,17 @@ public abstract class CHUDElement extends Component
             bar = new CBarElement();
             bar.xAnchor = X_ANCHOR_RIGHT;
             bar.yAnchor = Y_ANCHOR_TOP;
-            bar.direction = DIRECTION_BOTTOM_TO_TOP;
-            bar.setBackRL(new ResourceLocation(MODID, "image/hotbar_slot.png"));
-            bar.backColor = new Color(40, 40, 40, 255);
-            bar.setFillRL(new ResourceLocation(MODID, "image/hotbar_slot.png"));
+            bar.setBackRL(new ResourceLocation(MODID, "image/potion_slot_back.png"));
+            bar.setFillRL(new ResourceLocation(MODID, "image/potion_slot_fill.png"));
             bar.fillColor = Color.GRAY;
-            bar.xOffset = -9 - (i % 10) * 18;
-            bar.yOffset = 9 + (i / 10) * 18;
+            bar.xOffset = -7 - (i % 10) * 14;
+            bar.yOffset = 10 + (i / 10) * 19;
             bar.potionEffect = i + 1;
-            bar.text = "";
+            bar.potionEffectRelativeY = -4;
+            bar.potionEffectScale = 0.5;
+            bar.hScale = 0.5;
+            bar.vScale = 0.5;
+            bar.textRelativeY = 6;
             bar.textScale = 0.5;
             HUD_ELEMENTS.put(bar, "Potion Effect Slot " + (i + 1));
         }
