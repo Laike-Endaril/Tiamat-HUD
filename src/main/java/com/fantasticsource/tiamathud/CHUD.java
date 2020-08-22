@@ -1,11 +1,15 @@
 package com.fantasticsource.tiamathud;
 
+import com.fantasticsource.mctools.MCTools;
 import com.fantasticsource.mctools.Render;
 import com.fantasticsource.tiamathud.hudelement.CHUDElement;
 import com.fantasticsource.tools.component.CBoolean;
 import com.fantasticsource.tools.component.Component;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.world.GameType;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -14,25 +18,32 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.LinkedHashMap;
 
 @SideOnly(Side.CLIENT)
 public class CHUD extends Component
 {
-    public static boolean
-            renderVanillaHP = false,
-            renderVanillaFood = false,
-            renderVanillaBreath = false,
-            renderVanillaExp = false,
-            renderVanillaMountHealth = false,
-            renderVanillaMountCharge = false,
+    public static LinkedHashMap<GameType, CHUD> GAMEMODE_HUD_GLOBALS = new LinkedHashMap<>();
+
+    public boolean
+            renderVanillaHP = true,
+            renderVanillaFood = true,
+            renderVanillaBreath = true,
+            renderVanillaExp = true,
+            renderVanillaMountHealth = true,
+            renderVanillaMountCharge = true,
             renderVanillaCrosshair = true,
-            renderVanillaArmor = false,
-            renderVanillaHotbar = false,
-            renderVanillaPotionEffects = false,
+            renderVanillaArmor = true,
+            renderVanillaHotbar = true,
+            renderVanillaPotionEffects = true,
             renderVanillaChat = true,
             renderVanillaBossInfo = true,
             renderVanillaSubtitles = true;
 
+    public static CHUD currentHUDGlobals()
+    {
+        return GAMEMODE_HUD_GLOBALS.get(MCTools.getGameType(Minecraft.getMinecraft().player));
+    }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void vanillaHUD(RenderGameOverlayEvent event)
@@ -42,55 +53,55 @@ public class CHUD extends Component
         switch (event.getType())
         {
             case HEALTH:
-                if (!renderVanillaHP) event.setCanceled(true);
+                if (!currentHUDGlobals().renderVanillaHP) event.setCanceled(true);
                 return;
 
             case FOOD:
-                if (!renderVanillaFood) event.setCanceled(true);
+                if (!currentHUDGlobals().renderVanillaFood) event.setCanceled(true);
                 return;
 
             case AIR:
-                if (!renderVanillaBreath) event.setCanceled(true);
+                if (!currentHUDGlobals().renderVanillaBreath) event.setCanceled(true);
                 return;
 
             case EXPERIENCE:
-                if (!renderVanillaExp) event.setCanceled(true);
+                if (!currentHUDGlobals().renderVanillaExp) event.setCanceled(true);
                 return;
 
             case HEALTHMOUNT:
-                if (!renderVanillaMountHealth) event.setCanceled(true);
+                if (!currentHUDGlobals().renderVanillaMountHealth) event.setCanceled(true);
                 return;
 
             case JUMPBAR:
-                if (!renderVanillaMountCharge) event.setCanceled(true);
+                if (!currentHUDGlobals().renderVanillaMountCharge) event.setCanceled(true);
                 return;
 
             case CROSSHAIRS:
-                if (!renderVanillaCrosshair) event.setCanceled(true);
+                if (!currentHUDGlobals().renderVanillaCrosshair) event.setCanceled(true);
                 return;
 
             case ARMOR:
-                if (!renderVanillaArmor) event.setCanceled(true);
+                if (!currentHUDGlobals().renderVanillaArmor) event.setCanceled(true);
                 return;
 
             case HOTBAR:
-                if (!renderVanillaHotbar) event.setCanceled(true);
+                if (!currentHUDGlobals().renderVanillaHotbar) event.setCanceled(true);
                 return;
 
             case POTION_ICONS:
-                if (!renderVanillaPotionEffects) event.setCanceled(true);
+                if (!currentHUDGlobals().renderVanillaPotionEffects) event.setCanceled(true);
                 return;
 
             case CHAT:
-                if (!renderVanillaChat) event.setCanceled(true);
+                if (!currentHUDGlobals().renderVanillaChat) event.setCanceled(true);
                 return;
 
             case BOSSINFO:
-                if (!renderVanillaBossInfo) event.setCanceled(true);
+                if (!currentHUDGlobals().renderVanillaBossInfo) event.setCanceled(true);
                 return;
 
             case SUBTITLES:
-                if (!renderVanillaSubtitles) event.setCanceled(true);
+                if (!currentHUDGlobals().renderVanillaSubtitles) event.setCanceled(true);
                 return;
         }
     }
@@ -105,7 +116,7 @@ public class CHUD extends Component
         try
         {
             event.setScalingMode(Render.SCALING_FULL);
-            for (CHUDElement hudElement : CHUDElement.HUD_ELEMENTS.keySet())
+            for (CHUDElement hudElement : CHUDElement.GAMEMODE_HUD_ELEMENTS.get(MCTools.getGameType(Minecraft.getMinecraft().player)).keySet())
             {
                 hudElement.tryDraw();
             }

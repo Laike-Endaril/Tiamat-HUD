@@ -1,0 +1,1 @@
+Fix issue with HUD showing when on character creation screen

@@ -1,5 +1,6 @@
 package com.fantasticsource.tiamathud;
 
+import com.fantasticsource.mctools.MCTools;
 import com.fantasticsource.mctools.gui.GUIScreen;
 import com.fantasticsource.mctools.gui.element.GUIElement;
 import com.fantasticsource.mctools.gui.element.other.GUIButton;
@@ -15,13 +16,16 @@ import com.fantasticsource.mctools.gui.element.view.GUITabView;
 import com.fantasticsource.mctools.gui.screen.TextSelectionGUI;
 import com.fantasticsource.tiamathud.hudelement.CHUDElement;
 import com.fantasticsource.tools.datastructures.Color;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.GameType;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class HUDEditingGUI extends GUIScreen
 {
-    protected GUIList hudElements;
+    protected GameType gameType;
+    protected GUIList hudElementsList;
     protected LinkedHashMap<GUIButton, CHUDElement> editButtonToHUDElement = new LinkedHashMap<>();
 
     public HUDEditingGUI()
@@ -29,6 +33,11 @@ public class HUDEditingGUI extends GUIScreen
         showUnstacked(this);
 
         editButtonToHUDElement.clear();
+
+
+        gameType = MCTools.getGameType(Minecraft.getMinecraft().player);
+        CHUD hudGlobals = CHUD.GAMEMODE_HUD_GLOBALS.get(gameType);
+        LinkedHashMap<CHUDElement, String> hudElements = CHUDElement.GAMEMODE_HUD_ELEMENTS.get(gameType);
 
 
         //Background
@@ -46,7 +55,7 @@ public class HUDEditingGUI extends GUIScreen
 
 
         //Custom HUD Tab
-        hudElements = new GUIList(this, true, 0.98, 1)
+        hudElementsList = new GUIList(this, true, 0.98, 1)
         {
             @Override
             public GUIElement[] newLineDefaultElements()
@@ -69,14 +78,14 @@ public class HUDEditingGUI extends GUIScreen
                     hudElement.toString(); //Purposely crash
                 }
                 editButtonToHUDElement.put(editButton, hudElement);
-                CHUDElement.HUD_ELEMENTS.put(hudElement, name.getText());
+                hudElements.put(hudElement, name.getText());
 
                 return new GUIElement[]{
                         editButton.addClickActions(() -> editButtonToHUDElement.get(editButton).showEditingGUI(name.getText())),
                         new GUIElement(screen, 1, 0),
                         name.addEditActions(() ->
                         {
-                            if (name.valid()) CHUDElement.HUD_ELEMENTS.put(editButtonToHUDElement.get(editButton), name.getText());
+                            if (name.valid()) hudElements.put(editButtonToHUDElement.get(editButton), name.getText());
                         }),
                         new GUIElement(screen, 1, 0),
                         typeLabel.addClickActions(type::click),
@@ -88,7 +97,7 @@ public class HUDEditingGUI extends GUIScreen
                                 if (!typeName.equals(type.getText()))
                                 {
                                     CHUDElement element = editButtonToHUDElement.get(editButton);
-                                    CHUDElement.HUD_ELEMENTS.remove(element);
+                                    hudElements.remove(element);
                                     element = null;
 
                                     try
@@ -101,71 +110,71 @@ public class HUDEditingGUI extends GUIScreen
                                         element.toString(); //Purposely crash
                                     }
                                     editButtonToHUDElement.put(editButton, element);
-                                    CHUDElement.HUD_ELEMENTS.put(element, name.getText());
+                                    hudElements.put(element, name.getText());
                                 }
                             });
                         })
                 };
             }
         };
-        GUIVerticalScrollbar scrollbar = new GUIVerticalScrollbar(this, 0.02, 1, Color.GRAY, Color.BLANK, Color.WHITE, Color.BLANK, hudElements);
-        tabView.tabViews.get(0).addAll(hudElements, scrollbar);
+        GUIVerticalScrollbar scrollbar = new GUIVerticalScrollbar(this, 0.02, 1, Color.GRAY, Color.BLANK, Color.WHITE, Color.BLANK, hudElementsList);
+        tabView.tabViews.get(0).addAll(hudElementsList, scrollbar);
 
         //Add existing HUD elements
-        for (Map.Entry<CHUDElement, String> entry : CHUDElement.HUD_ELEMENTS.entrySet().toArray(new Map.Entry[0]))
+        for (Map.Entry<CHUDElement, String> entry : hudElements.entrySet().toArray(new Map.Entry[0]))
         {
-            GUIList.Line line = hudElements.addLine();
+            GUIList.Line line = hudElementsList.addLine();
 
-            CHUDElement.HUD_ELEMENTS.remove(editButtonToHUDElement.remove(line.getLineElement(0)));
+            hudElements.remove(editButtonToHUDElement.remove(line.getLineElement(0)));
 
             CHUDElement element = entry.getKey();
             editButtonToHUDElement.put((GUIButton) line.getLineElement(0), element);
             String name = entry.getValue();
-            CHUDElement.HUD_ELEMENTS.put(element, name);
+            hudElements.put(element, name);
             ((GUILabeledTextInput) line.getLineElement(2)).setText(name);
             ((GUIText) line.getLineElement(5)).setText(CHUDElement.CLASS_TO_TYPE.get(element.getClass()));
         }
 
 
         //Vanilla HUD Tab
-        GUILabeledBoolean vanillaHP = new GUILabeledBoolean(this, "Health: ", CHUD.renderVanillaHP);
-        vanillaHP.input.addClickActions(() -> CHUD.renderVanillaHP = vanillaHP.getValue());
+        GUILabeledBoolean vanillaHP = new GUILabeledBoolean(this, "Health: ", hudGlobals.renderVanillaHP);
+        vanillaHP.input.addClickActions(() -> hudGlobals.renderVanillaHP = vanillaHP.getValue());
 
-        GUILabeledBoolean vanillaFood = new GUILabeledBoolean(this, "Food: ", CHUD.renderVanillaFood);
-        vanillaFood.input.addClickActions(() -> CHUD.renderVanillaFood = vanillaFood.getValue());
+        GUILabeledBoolean vanillaFood = new GUILabeledBoolean(this, "Food: ", hudGlobals.renderVanillaFood);
+        vanillaFood.input.addClickActions(() -> hudGlobals.renderVanillaFood = vanillaFood.getValue());
 
-        GUILabeledBoolean vanillaBreath = new GUILabeledBoolean(this, "Breath: ", CHUD.renderVanillaBreath);
-        vanillaBreath.input.addClickActions(() -> CHUD.renderVanillaBreath = vanillaBreath.getValue());
+        GUILabeledBoolean vanillaBreath = new GUILabeledBoolean(this, "Breath: ", hudGlobals.renderVanillaBreath);
+        vanillaBreath.input.addClickActions(() -> hudGlobals.renderVanillaBreath = vanillaBreath.getValue());
 
-        GUILabeledBoolean vanillaExp = new GUILabeledBoolean(this, "Experience: ", CHUD.renderVanillaExp);
-        vanillaExp.input.addClickActions(() -> CHUD.renderVanillaExp = vanillaExp.getValue());
+        GUILabeledBoolean vanillaExp = new GUILabeledBoolean(this, "Experience: ", hudGlobals.renderVanillaExp);
+        vanillaExp.input.addClickActions(() -> hudGlobals.renderVanillaExp = vanillaExp.getValue());
 
-        GUILabeledBoolean vanillaMountHP = new GUILabeledBoolean(this, "Mount Health: ", CHUD.renderVanillaMountHealth);
-        vanillaMountHP.input.addClickActions(() -> CHUD.renderVanillaMountHealth = vanillaMountHP.getValue());
+        GUILabeledBoolean vanillaMountHP = new GUILabeledBoolean(this, "Mount Health: ", hudGlobals.renderVanillaMountHealth);
+        vanillaMountHP.input.addClickActions(() -> hudGlobals.renderVanillaMountHealth = vanillaMountHP.getValue());
 
-        GUILabeledBoolean vanillaMountCharge = new GUILabeledBoolean(this, "Mount Charge: ", CHUD.renderVanillaMountCharge);
-        vanillaMountCharge.input.addClickActions(() -> CHUD.renderVanillaMountCharge = vanillaMountCharge.getValue());
+        GUILabeledBoolean vanillaMountCharge = new GUILabeledBoolean(this, "Mount Charge: ", hudGlobals.renderVanillaMountCharge);
+        vanillaMountCharge.input.addClickActions(() -> hudGlobals.renderVanillaMountCharge = vanillaMountCharge.getValue());
 
-        GUILabeledBoolean vanillaCrosshair = new GUILabeledBoolean(this, "Crosshair: ", CHUD.renderVanillaCrosshair);
-        vanillaCrosshair.input.addClickActions(() -> CHUD.renderVanillaCrosshair = vanillaCrosshair.getValue());
+        GUILabeledBoolean vanillaCrosshair = new GUILabeledBoolean(this, "Crosshair: ", hudGlobals.renderVanillaCrosshair);
+        vanillaCrosshair.input.addClickActions(() -> hudGlobals.renderVanillaCrosshair = vanillaCrosshair.getValue());
 
-        GUILabeledBoolean vanillaArmor = new GUILabeledBoolean(this, "Armor: ", CHUD.renderVanillaArmor);
-        vanillaArmor.input.addClickActions(() -> CHUD.renderVanillaArmor = vanillaArmor.getValue());
+        GUILabeledBoolean vanillaArmor = new GUILabeledBoolean(this, "Armor: ", hudGlobals.renderVanillaArmor);
+        vanillaArmor.input.addClickActions(() -> hudGlobals.renderVanillaArmor = vanillaArmor.getValue());
 
-        GUILabeledBoolean vanillaHotbar = new GUILabeledBoolean(this, "Hotbar: ", CHUD.renderVanillaHotbar);
-        vanillaHotbar.input.addClickActions(() -> CHUD.renderVanillaHotbar = vanillaHotbar.getValue());
+        GUILabeledBoolean vanillaHotbar = new GUILabeledBoolean(this, "Hotbar: ", hudGlobals.renderVanillaHotbar);
+        vanillaHotbar.input.addClickActions(() -> hudGlobals.renderVanillaHotbar = vanillaHotbar.getValue());
 
-        GUILabeledBoolean vanillaPotionEffects = new GUILabeledBoolean(this, "Potion Effects: ", CHUD.renderVanillaPotionEffects);
-        vanillaPotionEffects.input.addClickActions(() -> CHUD.renderVanillaPotionEffects = vanillaPotionEffects.getValue());
+        GUILabeledBoolean vanillaPotionEffects = new GUILabeledBoolean(this, "Potion Effects: ", hudGlobals.renderVanillaPotionEffects);
+        vanillaPotionEffects.input.addClickActions(() -> hudGlobals.renderVanillaPotionEffects = vanillaPotionEffects.getValue());
 
-        GUILabeledBoolean vanillaChat = new GUILabeledBoolean(this, "Chat: ", CHUD.renderVanillaChat);
-        vanillaChat.input.addClickActions(() -> CHUD.renderVanillaChat = vanillaChat.getValue());
+        GUILabeledBoolean vanillaChat = new GUILabeledBoolean(this, "Chat: ", hudGlobals.renderVanillaChat);
+        vanillaChat.input.addClickActions(() -> hudGlobals.renderVanillaChat = vanillaChat.getValue());
 
-        GUILabeledBoolean vanillaBossInfo = new GUILabeledBoolean(this, "Boss Info: ", CHUD.renderVanillaBossInfo);
-        vanillaBossInfo.input.addClickActions(() -> CHUD.renderVanillaBossInfo = vanillaBossInfo.getValue());
+        GUILabeledBoolean vanillaBossInfo = new GUILabeledBoolean(this, "Boss Info: ", hudGlobals.renderVanillaBossInfo);
+        vanillaBossInfo.input.addClickActions(() -> hudGlobals.renderVanillaBossInfo = vanillaBossInfo.getValue());
 
-        GUILabeledBoolean vanillaSubtitles = new GUILabeledBoolean(this, "Subtitles: ", CHUD.renderVanillaSubtitles);
-        vanillaSubtitles.input.addClickActions(() -> CHUD.renderVanillaSubtitles = vanillaSubtitles.getValue());
+        GUILabeledBoolean vanillaSubtitles = new GUILabeledBoolean(this, "Subtitles: ", hudGlobals.renderVanillaSubtitles);
+        vanillaSubtitles.input.addClickActions(() -> hudGlobals.renderVanillaSubtitles = vanillaSubtitles.getValue());
 
         tabView.tabViews.get(1).addAll(
                 vanillaHP,
@@ -196,11 +205,11 @@ public class HUDEditingGUI extends GUIScreen
 
         //Add GUI actions
         navbar.addRecalcActions(() -> tabView.height = 1 - (navbar.y + navbar.height));
-        hudElements.addRemoveChildActions(element ->
+        hudElementsList.addRemoveChildActions(element ->
         {
             if (element instanceof GUIList.Line)
             {
-                CHUDElement.HUD_ELEMENTS.remove(editButtonToHUDElement.remove(((GUIList.Line) element).getLineElement(0)));
+                hudElements.remove(editButtonToHUDElement.remove(((GUIList.Line) element).getLineElement(0)));
             }
             return true;
         });
@@ -217,7 +226,7 @@ public class HUDEditingGUI extends GUIScreen
     @Override
     public void onClosed()
     {
-        CHUDElement.saveAll();
+        CHUDElement.saveGametype(gameType);
 
         super.onClosed();
     }

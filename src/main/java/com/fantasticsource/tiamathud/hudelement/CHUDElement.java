@@ -12,6 +12,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.GameType;
 import org.lwjgl.opengl.Display;
 
 import java.io.*;
@@ -20,7 +21,6 @@ import java.util.Map;
 
 import static com.fantasticsource.tiamathud.TiamatHUD.MODID;
 import static com.fantasticsource.tiamathud.hudelement.CBarElement.DIRECTION_BOTTOM_TO_TOP;
-import static com.fantasticsource.tiamathud.hudelement.CBarElement.DIRECTION_LEFT_TO_RIGHT;
 import static com.fantasticsource.tiamathud.hudelement.CBarElement.DIRECTION_RIGHT_TO_LEFT;
 
 public abstract class CHUDElement extends Component
@@ -63,9 +63,9 @@ public abstract class CHUDElement extends Component
         Y_ANCHORS_I_S.put(Y_ANCHOR_BOTTOM, "Bottom");
     }
 
-    public static final File FILE = new File(MCTools.getConfigDir() + MODID + File.separator + "elements.dat");
+    public static final String PREFIX = MCTools.getConfigDir() + MODID + File.separator;
 
-    public static final LinkedHashMap<CHUDElement, String> HUD_ELEMENTS = new LinkedHashMap<>();
+    public static final LinkedHashMap<GameType, LinkedHashMap<CHUDElement, String>> GAMEMODE_HUD_ELEMENTS = new LinkedHashMap<>();
 
     public static final LinkedHashMap<String, Class<? extends CHUDElement>> TYPE_TO_CLASS = new LinkedHashMap<>();
     public static final LinkedHashMap<Class<? extends CHUDElement>, String> CLASS_TO_TYPE = new LinkedHashMap<>();
@@ -84,25 +84,28 @@ public abstract class CHUDElement extends Component
     public int xAnchor = X_ANCHOR_CENTER, yAnchor = Y_ANCHOR_CENTER;
 
 
-    public static void saveAll()
+    public static void saveGametype(GameType gameType)
     {
-        FILE.mkdirs();
-        while (FILE.exists()) FILE.delete();
+        File file = new File(PREFIX + gameType + ".dat");
+        LinkedHashMap<CHUDElement, String> hudElements = GAMEMODE_HUD_ELEMENTS.get(gameType);
+
+        file.mkdirs();
+        while (file.exists()) file.delete();
 
         try
         {
-            FileOutputStream stream = new FileOutputStream(FILE);
+            FileOutputStream stream = new FileOutputStream(file);
 
 
-            new CHUD().save(stream);
+            CHUD.GAMEMODE_HUD_GLOBALS.get(gameType).save(stream);
 
 
-            new CInt().set(HUD_ELEMENTS.size()).save(stream);
+            new CInt().set(hudElements.size()).save(stream);
             CStringUTF8 cs = new CStringUTF8();
-            for (Map.Entry<CHUDElement, String> entry : HUD_ELEMENTS.entrySet())
+            for (Map.Entry<CHUDElement, String> entry2 : hudElements.entrySet())
             {
-                saveMarked(stream, entry.getKey());
-                cs.set(entry.getValue()).save(stream);
+                saveMarked(stream, entry2.getKey());
+                cs.set(entry2.getValue()).save(stream);
             }
 
             stream.close();
@@ -115,157 +118,190 @@ public abstract class CHUDElement extends Component
 
     public static void loadAll()
     {
-        HUD_ELEMENTS.clear();
-        if (!FILE.exists())
+        GAMEMODE_HUD_ELEMENTS.clear();
+        CHUD.GAMEMODE_HUD_GLOBALS.clear();
+
+        CStringUTF8 cs = new CStringUTF8();
+        CInt ci = new CInt();
+
+        for (GameType gameType : GameType.values())
         {
-            initDefaults();
-            return;
-        }
+            File file = new File(PREFIX + gameType + ".dat");
 
-
-        try
-        {
-            FileInputStream stream = new FileInputStream(FILE);
-
-
-            new CHUD().load(stream);
-
-
-            CStringUTF8 cs = new CStringUTF8();
-            for (int i = new CInt().load(stream).value; i > 0; i--)
+            if (!file.exists())
             {
-                HUD_ELEMENTS.put((CHUDElement) loadMarked(stream), cs.load(stream).value);
+                initDefaults(gameType);
+                continue;
             }
 
-            stream.close();
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
+
+            try
+            {
+                FileInputStream stream = new FileInputStream(file);
+
+                CHUD hudGlobals = new CHUD().load(stream);
+                CHUD.GAMEMODE_HUD_GLOBALS.put(gameType, hudGlobals);
+
+                LinkedHashMap<CHUDElement, String> hudElements = new LinkedHashMap<>();
+                GAMEMODE_HUD_ELEMENTS.put(gameType, hudElements);
+                for (int i = ci.load(stream).value; i > 0; i--)
+                {
+                    hudElements.put((CHUDElement) loadMarked(stream), cs.load(stream).value);
+                }
+
+                stream.close();
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
         }
     }
 
-    public static void initDefaults()
+    public static void initDefaults(GameType gameType)
     {
+        CHUD hudGlobals = new CHUD();
+        CHUD.GAMEMODE_HUD_GLOBALS.put(gameType, hudGlobals);
+
+        LinkedHashMap<CHUDElement, String> hudElements = new LinkedHashMap<>();
+        GAMEMODE_HUD_ELEMENTS.put(gameType, hudElements);
+
         CBarElement bar;
 
-        for (int i = 0; i < 30; i++)
+        switch (gameType)
         {
-            bar = new CBarElement();
-            bar.xAnchor = X_ANCHOR_RIGHT;
-            bar.yAnchor = Y_ANCHOR_TOP;
-            bar.setBackRL(new ResourceLocation(MODID, "image/potion_slot_back.png"));
-            bar.setFillRL(new ResourceLocation(MODID, "image/potion_slot_fill.png"));
-            bar.fillColor = Color.GRAY;
-            bar.xOffset = -7 - (i % 10) * 14;
-            bar.yOffset = 10 + (i / 10) * 19;
-            bar.potionEffect = i + 1;
-            bar.potionEffectRelativeY = -4;
-            bar.potionEffectScale = 0.5;
-            bar.hScale = 0.5;
-            bar.vScale = 0.5;
-            bar.textRelativeY = 6;
-            bar.textScale = 0.5;
-            HUD_ELEMENTS.put(bar, "Potion Effect Slot " + (i + 1));
+            case SURVIVAL:
+            case ADVENTURE:
+                hudGlobals.renderVanillaHP = false;
+                hudGlobals.renderVanillaFood = false;
+                hudGlobals.renderVanillaBreath = false;
+                hudGlobals.renderVanillaExp = false;
+                hudGlobals.renderVanillaMountHealth = false;
+                hudGlobals.renderVanillaMountCharge = false;
+                hudGlobals.renderVanillaArmor = false;
+                hudGlobals.renderVanillaHotbar = false;
+                hudGlobals.renderVanillaPotionEffects = false;
+
+                for (int i = 0; i < 30; i++)
+                {
+                    bar = new CBarElement();
+                    bar.xAnchor = X_ANCHOR_RIGHT;
+                    bar.yAnchor = Y_ANCHOR_TOP;
+                    bar.setBackRL(new ResourceLocation(MODID, "image/potion_slot_back.png"));
+                    bar.setFillRL(new ResourceLocation(MODID, "image/potion_slot_fill.png"));
+                    bar.fillColor = Color.GRAY;
+                    bar.xOffset = -7 - (i % 10) * 14;
+                    bar.yOffset = 10 + (i / 10) * 19;
+                    bar.potionEffect = i + 1;
+                    bar.potionEffectRelativeY = -4;
+                    bar.potionEffectScale = 0.5;
+                    bar.hScale = 0.5;
+                    bar.vScale = 0.5;
+                    bar.textRelativeY = 6;
+                    bar.textScale = 0.5;
+                    hudElements.put(bar, "Potion Effect Slot " + (i + 1));
+                }
+
+                for (int i = 0; i < 9; i++)
+                {
+                    bar = new CBarElement();
+                    bar.yAnchor = Y_ANCHOR_BOTTOM;
+                    bar.direction = DIRECTION_BOTTOM_TO_TOP;
+                    bar.setBackRL(new ResourceLocation(MODID, "image/hotbar_slot.png"));
+                    bar.backColor = new Color(40, 40, 40, 255);
+                    bar.setFillRL(new ResourceLocation(MODID, "image/hotbar_slot.png"));
+                    bar.fillColor = Color.GRAY;
+                    bar.xOffset = -72 + i * 18;
+                    bar.yOffset = -9;
+                    bar.hotbarItem = i + 1;
+                    bar.text = "";
+                    hudElements.put(bar, "Hotbar Slot " + (i + 1));
+                }
+
+                bar = new CBarElement();
+                bar.hideIfEmpty = true;
+                bar.yAnchor = Y_ANCHOR_BOTTOM;
+                bar.setBackRL(new ResourceLocation(MODID, "image/2x2.png"));
+                bar.setFillRL(new ResourceLocation(MODID, "image/2x2.png"));
+                bar.yOffset = -35;
+                bar.hScale = 45;
+                bar.current = "mountcharge";
+                bar.max = "1";
+                bar.backColor = Color.BLACK.copy().setA(100);
+                bar.fillColor = Color.WHITE;
+                bar.text = "";
+                hudElements.put(bar, "Mount Charge");
+
+                bar = new CBarElement();
+                bar.setBackRL(new ResourceLocation(MODID, "image/bar_back_alt.png"));
+                bar.yAnchor = Y_ANCHOR_BOTTOM;
+                bar.textScale = 0.5;
+                bar.xOffset = -24;
+                bar.yOffset = -30;
+                bar.fillColor = Color.RED;
+                hudElements.put(bar, "Health");
+
+                bar = new CBarElement();
+                bar.setBackRL(new ResourceLocation(MODID, "image/bar_back_alt.png"));
+                bar.angle = 180;
+                bar.direction = DIRECTION_RIGHT_TO_LEFT;
+                bar.yAnchor = Y_ANCHOR_BOTTOM;
+                bar.textScale = 0.5;
+                bar.xOffset = 24;
+                bar.yOffset = -30;
+                bar.current = "mounthealth";
+                bar.max = "mountmaxhealth";
+                bar.fillColor = new Color(255, 100, 100);
+                hudElements.put(bar, "Mount Health");
+
+                bar = new CBarElement();
+                bar.setBackRL(new ResourceLocation(MODID, "image/bar_back_alt.png"));
+                bar.yAnchor = Y_ANCHOR_BOTTOM;
+                bar.textScale = 0.5;
+                bar.xOffset = -24;
+                bar.yOffset = -22;
+                bar.current = "food";
+                bar.max = "20";
+                bar.fillColor = Color.ORANGE;
+                hudElements.put(bar, "Food");
+
+                bar = new CBarElement();
+                bar.setBackRL(new ResourceLocation(MODID, "image/bar_back_alt.png"));
+                bar.angle = 180;
+                bar.direction = DIRECTION_RIGHT_TO_LEFT;
+                bar.yAnchor = Y_ANCHOR_BOTTOM;
+                bar.textScale = 0.5;
+                bar.xOffset = 24;
+                bar.yOffset = -22;
+                bar.current = "saturation";
+                bar.max = "20";
+                bar.fillColor = Color.YELLOW;
+                hudElements.put(bar, "Saturation");
+
+                bar = new CBarElement();
+                bar.hideIfFull = true;
+                bar.yAnchor = Y_ANCHOR_BOTTOM;
+                bar.textScale = 0.5;
+                bar.xOffset = -69;
+                bar.yOffset = -26;
+                bar.current = "breath";
+                bar.max = "300";
+                bar.fillColor = Color.AQUA;
+                hudElements.put(bar, "Breath");
+
+                bar = new CBarElement();
+                bar.yAnchor = Y_ANCHOR_BOTTOM;
+                bar.textScale = 0.5;
+                bar.xOffset = 69;
+                bar.yOffset = -26;
+                bar.current = "exp";
+                bar.max = "1";
+                bar.fillColor = Color.GREEN;
+                bar.text = "Lvl @level (@percent)";
+                hudElements.put(bar, "Exp");
+
+                break;
         }
-
-        for (int i = 0; i < 9; i++)
-        {
-            bar = new CBarElement();
-            bar.yAnchor = Y_ANCHOR_BOTTOM;
-            bar.direction = DIRECTION_BOTTOM_TO_TOP;
-            bar.setBackRL(new ResourceLocation(MODID, "image/hotbar_slot.png"));
-            bar.backColor = new Color(40, 40, 40, 255);
-            bar.setFillRL(new ResourceLocation(MODID, "image/hotbar_slot.png"));
-            bar.fillColor = Color.GRAY;
-            bar.xOffset = -72 + i * 18;
-            bar.yOffset = -9;
-            bar.hotbarItem = i + 1;
-            bar.text = "";
-            HUD_ELEMENTS.put(bar, "Hotbar Slot " + (i + 1));
-        }
-
-        bar = new CBarElement();
-        bar.hideIfEmpty = true;
-        bar.yAnchor = Y_ANCHOR_BOTTOM;
-        bar.setBackRL(new ResourceLocation(MODID, "image/2x2.png"));
-        bar.setFillRL(new ResourceLocation(MODID, "image/2x2.png"));
-        bar.yOffset = -35;
-        bar.hScale = 45;
-        bar.current = "mountcharge";
-        bar.max = "1";
-        bar.backColor = Color.BLACK.copy().setA(100);
-        bar.fillColor = Color.WHITE;
-        bar.text = "";
-        HUD_ELEMENTS.put(bar, "Mount Charge");
-
-        bar = new CBarElement();
-        bar.setBackRL(new ResourceLocation(MODID, "image/bar_back_alt.png"));
-        bar.yAnchor = Y_ANCHOR_BOTTOM;
-        bar.textScale = 0.5;
-        bar.xOffset = -24;
-        bar.yOffset = -30;
-        bar.fillColor = Color.RED;
-        HUD_ELEMENTS.put(bar, "Health");
-
-        bar = new CBarElement();
-        bar.setBackRL(new ResourceLocation(MODID, "image/bar_back_alt.png"));
-        bar.angle = 180;
-        bar.direction = DIRECTION_RIGHT_TO_LEFT;
-        bar.yAnchor = Y_ANCHOR_BOTTOM;
-        bar.textScale = 0.5;
-        bar.xOffset = 24;
-        bar.yOffset = -30;
-        bar.current = "mounthealth";
-        bar.max = "mountmaxhealth";
-        bar.fillColor = new Color(255, 100, 100);
-        HUD_ELEMENTS.put(bar, "Mount Health");
-
-        bar = new CBarElement();
-        bar.setBackRL(new ResourceLocation(MODID, "image/bar_back_alt.png"));
-        bar.yAnchor = Y_ANCHOR_BOTTOM;
-        bar.textScale = 0.5;
-        bar.xOffset = -24;
-        bar.yOffset = -22;
-        bar.current = "food";
-        bar.max = "20";
-        bar.fillColor = Color.ORANGE;
-        HUD_ELEMENTS.put(bar, "Food");
-
-        bar = new CBarElement();
-        bar.setBackRL(new ResourceLocation(MODID, "image/bar_back_alt.png"));
-        bar.angle = 180;
-        bar.direction = DIRECTION_RIGHT_TO_LEFT;
-        bar.yAnchor = Y_ANCHOR_BOTTOM;
-        bar.textScale = 0.5;
-        bar.xOffset = 24;
-        bar.yOffset = -22;
-        bar.current = "saturation";
-        bar.max = "20";
-        bar.fillColor = Color.YELLOW;
-        HUD_ELEMENTS.put(bar, "Saturation");
-
-        bar = new CBarElement();
-        bar.hideIfFull = true;
-        bar.yAnchor = Y_ANCHOR_BOTTOM;
-        bar.textScale = 0.5;
-        bar.xOffset = -69;
-        bar.yOffset = -26;
-        bar.current = "breath";
-        bar.max = "300";
-        bar.fillColor = Color.AQUA;
-        HUD_ELEMENTS.put(bar, "Breath");
-
-        bar = new CBarElement();
-        bar.yAnchor = Y_ANCHOR_BOTTOM;
-        bar.textScale = 0.5;
-        bar.xOffset = 69;
-        bar.yOffset = -26;
-        bar.current = "exp";
-        bar.max = "1";
-        bar.fillColor = Color.GREEN;
-        bar.text = "Lvl @level (@percent)";
-        HUD_ELEMENTS.put(bar, "Exp");
     }
 
 
