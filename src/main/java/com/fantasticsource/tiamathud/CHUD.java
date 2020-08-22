@@ -45,7 +45,7 @@ public class CHUD extends Component
         return GAMEMODE_HUD_GLOBALS.get(MCTools.getGameType(Minecraft.getMinecraft().player));
     }
 
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void vanillaHUD(RenderGameOverlayEvent event)
     {
         if (!event.isCancelable()) return;
@@ -106,7 +106,7 @@ public class CHUD extends Component
         }
     }
 
-    @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
+    @SubscribeEvent(priority = EventPriority.LOW)
     public static void drawHUD(Render.RenderHUDEvent event)
     {
         GlStateManager.disableDepth();
