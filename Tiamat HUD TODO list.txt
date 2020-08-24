@@ -1,0 +1,1 @@
+More flexible item display (other inventory slots)
