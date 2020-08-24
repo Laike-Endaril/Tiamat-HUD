@@ -49,58 +49,61 @@ public class CHUD extends Component
     {
         if (!event.isCancelable()) return;
 
+        CHUD hudGlobals = currentHUDGlobals();
+        if (hudGlobals == null) return;
+
         switch (event.getType())
         {
             case HEALTH:
-                if (!currentHUDGlobals().renderVanillaHP) event.setCanceled(true);
+                if (!hudGlobals.renderVanillaHP) event.setCanceled(true);
                 return;
 
             case FOOD:
-                if (!currentHUDGlobals().renderVanillaFood) event.setCanceled(true);
+                if (!hudGlobals.renderVanillaFood) event.setCanceled(true);
                 return;
 
             case AIR:
-                if (!currentHUDGlobals().renderVanillaBreath) event.setCanceled(true);
+                if (!hudGlobals.renderVanillaBreath) event.setCanceled(true);
                 return;
 
             case EXPERIENCE:
-                if (!currentHUDGlobals().renderVanillaExp) event.setCanceled(true);
+                if (!hudGlobals.renderVanillaExp) event.setCanceled(true);
                 return;
 
             case HEALTHMOUNT:
-                if (!currentHUDGlobals().renderVanillaMountHealth) event.setCanceled(true);
+                if (!hudGlobals.renderVanillaMountHealth) event.setCanceled(true);
                 return;
 
             case JUMPBAR:
-                if (!currentHUDGlobals().renderVanillaMountCharge) event.setCanceled(true);
+                if (!hudGlobals.renderVanillaMountCharge) event.setCanceled(true);
                 return;
 
             case CROSSHAIRS:
-                if (!currentHUDGlobals().renderVanillaCrosshair) event.setCanceled(true);
+                if (!hudGlobals.renderVanillaCrosshair) event.setCanceled(true);
                 return;
 
             case ARMOR:
-                if (!currentHUDGlobals().renderVanillaArmor) event.setCanceled(true);
+                if (!hudGlobals.renderVanillaArmor) event.setCanceled(true);
                 return;
 
             case HOTBAR:
-                if (!currentHUDGlobals().renderVanillaHotbar) event.setCanceled(true);
+                if (!hudGlobals.renderVanillaHotbar) event.setCanceled(true);
                 return;
 
             case POTION_ICONS:
-                if (!currentHUDGlobals().renderVanillaPotionEffects) event.setCanceled(true);
+                if (!hudGlobals.renderVanillaPotionEffects) event.setCanceled(true);
                 return;
 
             case CHAT:
-                if (!currentHUDGlobals().renderVanillaChat) event.setCanceled(true);
+                if (!hudGlobals.renderVanillaChat) event.setCanceled(true);
                 return;
 
             case BOSSINFO:
-                if (!currentHUDGlobals().renderVanillaBossInfo) event.setCanceled(true);
+                if (!hudGlobals.renderVanillaBossInfo) event.setCanceled(true);
                 return;
 
             case SUBTITLES:
-                if (!currentHUDGlobals().renderVanillaSubtitles) event.setCanceled(true);
+                if (!hudGlobals.renderVanillaSubtitles) event.setCanceled(true);
                 return;
         }
     }
