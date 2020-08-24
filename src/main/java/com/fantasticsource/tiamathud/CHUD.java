@@ -8,7 +8,6 @@ import com.fantasticsource.tools.component.Component;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.GameType;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
@@ -116,9 +115,13 @@ public class CHUD extends Component
         try
         {
             event.setScalingMode(Render.SCALING_FULL);
-            for (CHUDElement hudElement : CHUDElement.GAMEMODE_HUD_ELEMENTS.get(MCTools.getGameType(Minecraft.getMinecraft().player)).keySet())
+            LinkedHashMap<CHUDElement, String> hudElements = CHUDElement.GAMEMODE_HUD_ELEMENTS.get(MCTools.getGameType(Minecraft.getMinecraft().player));
+            if (hudElements != null)
             {
-                hudElement.tryDraw();
+                for (CHUDElement hudElement : hudElements.keySet())
+                {
+                    hudElement.tryDraw();
+                }
             }
             event.setScalingMode(Render.SCALING_MC_GUI);
         }
