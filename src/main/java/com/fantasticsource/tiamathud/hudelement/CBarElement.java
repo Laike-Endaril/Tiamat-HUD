@@ -1,5 +1,6 @@
 package com.fantasticsource.tiamathud.hudelement;
 
+import com.fantasticsource.mctools.GlobalInventory;
 import com.fantasticsource.mctools.MCTools;
 import com.fantasticsource.mctools.OutlinedFontRenderer;
 import com.fantasticsource.mctools.gui.GUIScreen;
@@ -28,6 +29,7 @@ import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.ResourceLocation;
@@ -44,9 +46,6 @@ import static org.lwjgl.opengl.GL11.GL_QUADS;
 
 public class CBarElement extends CHUDElement
 {
-    protected static final FilterRangedInt HOTBAR_SLOT_FILTER = FilterRangedInt.get(0, 9);
-    protected static final FilterRangedInt POTION_EFFECT_FILTER = FilterRangedInt.get(0, Integer.MAX_VALUE);
-
     public static final ResourceLocation
             DEFAULT_BACK_RL = new ResourceLocation(MODID, "image/bar_back.png"),
             DEFAULT_FILL_RL = new ResourceLocation(MODID, "image/bar_fill.png"),
@@ -92,12 +91,9 @@ public class CBarElement extends CHUDElement
     protected PNG backPNG = DEFAULT_BACK_PNG, fillPNG = DEFAULT_FILL_PNG, forePNG = DEFAULT_FORE_PNG;
     public Color backColor = Color.WHITE, fillColor = Color.WHITE, foreColor = Color.WHITE;
 
-    public int hotbarItem = 0;
-    public double hotbarItemScale = 1;
-
-    public int potionEffect = 0;
-    public int potionEffectRelativeX = 0, potionEffectRelativeY = 0;
-    public double potionEffectScale = 1;
+    public String itemOrPotion = "";
+    public int itemOrPotionRelativeX = 0, itemOrPotionRelativeY = 0;
+    public double itemOrPotionScale = 1;
 
     public String text = "@current/@max";
     public int textRelativeX = 0, textRelativeY = 0;
@@ -106,21 +102,6 @@ public class CBarElement extends CHUDElement
 
     public String min = "0", current = "health", max = "generic.maxHealth";
 
-
-    public ResourceLocation getBackRL()
-    {
-        return backRL;
-    }
-
-    public ResourceLocation getFillRL()
-    {
-        return fillRL;
-    }
-
-    public ResourceLocation getForeRL()
-    {
-        return foreRL;
-    }
 
     public void setBackRL(ResourceLocation backRL)
     {
@@ -159,28 +140,35 @@ public class CBarElement extends CHUDElement
         }
 
 
-        //Min, current, and max value computation (and hard stop)
+        //Min, current, and max value computation (and hard stops)
         Double min, current, max;
+        EntityPlayer player = Minecraft.getMinecraft().player;
+        ItemStack stack = GlobalInventory.getItem(player, itemOrPotion);
         PotionEffect currentPotionEffect = null;
-        if (hotbarItem > 0 && hotbarItem < 10)
+
+        if (stack == null && itemOrPotion.contains("potion"))
         {
-            min = 0d;
-            current = (double) Minecraft.getMinecraft().player.getCooledAttackStrength(0);
-            max = 1d;
-        }
-        else if (potionEffect > 0)
-        {
-            Collection<PotionEffect> potionEffects = Minecraft.getMinecraft().player.getActivePotionEffects();
-            if (potionEffect > potionEffects.size()) return;
+            try
+            {
+                int index = Integer.parseInt(itemOrPotion.replace("potion", "")) - 1;
 
-            ExplicitPriorityQueue<PotionEffect> queue = new ExplicitPriorityQueue<>(potionEffects.size());
-            for (PotionEffect potionEffect : potionEffects) queue.add(potionEffect, potionEffect.getDuration());
+                Collection<PotionEffect> potionEffects = player.getActivePotionEffects();
+                if (index >= potionEffects.size()) return;
 
-            currentPotionEffect = queue.toArray(new PotionEffect[0])[potionEffect - 1];
 
-            min = 0d;
-            current = currentPotionEffect.getDuration() / 20d;
-            max = 30d;
+                ExplicitPriorityQueue<PotionEffect> queue = new ExplicitPriorityQueue<>(potionEffects.size());
+                for (PotionEffect potionEffect : potionEffects) queue.add(potionEffect, potionEffect.getDuration());
+
+                currentPotionEffect = queue.toArray(new PotionEffect[0])[index];
+
+                min = 0d;
+                current = currentPotionEffect.getDuration() / 20d;
+                max = 30d;
+            }
+            catch (NumberFormatException e)
+            {
+                return;
+            }
         }
         else
         {
@@ -190,11 +178,11 @@ public class CBarElement extends CHUDElement
             }
             catch (NumberFormatException e)
             {
-                min = MCTools.getAttribute(Minecraft.getMinecraft().player, this.min);
+                min = MCTools.getAttribute(player, this.min);
             }
-            if (min == null) min = parseVal(this.min);
+            if (min == null) min = parseVal(this.min, player.getHeldItemMainhand() == stack);
 
-            current = parseVal(this.current);
+            current = parseVal(this.current, player.getHeldItemMainhand() == stack);
             if (current == null)
             {
                 try
@@ -203,11 +191,11 @@ public class CBarElement extends CHUDElement
                 }
                 catch (NumberFormatException e)
                 {
-                    current = MCTools.getAttribute(Minecraft.getMinecraft().player, this.current);
+                    current = MCTools.getAttribute(player, this.current);
                 }
             }
 
-            max = MCTools.getAttribute(Minecraft.getMinecraft().player, this.max);
+            max = MCTools.getAttribute(player, this.max);
             if (max == null)
             {
                 try
@@ -218,7 +206,7 @@ public class CBarElement extends CHUDElement
                 {
                 }
             }
-            if (max == null) max = parseVal(this.max);
+            if (max == null) max = parseVal(this.max, player.getHeldItemMainhand() == stack);
         }
 
 
@@ -258,132 +246,127 @@ public class CBarElement extends CHUDElement
         }
 
         //Fill
-        if (hotbarItem < 1 || hotbarItem > 9 || hotbarItem - 1 == Minecraft.getMinecraft().player.inventory.currentItem)
+        if (fillPNG != null && fillColor.af() > 0 && min != null && current != null && max != null && max - min != 0)
         {
-            if (fillPNG != null && fillColor.af() > 0 && min != null && current != null && max != null && max - min != 0)
+            float fillPercent = Tools.min(1, (float) ((current - min) / (max - min)));
+
+            textureManager.bindTexture(fillRL);
+            GlStateManager.color(fillColor.rf(), fillColor.gf(), fillColor.bf(), fillColor.af());
+
+            float w = (float) (fillPNG.getWidth() * hScale), h = (float) (fillPNG.getHeight() * vScale);
+            float halfW = w * 0.5f, halfH = h * 0.5f;
+
+            switch (direction)
             {
-                float fillPercent = Tools.min(1, (float) ((current - min) / (max - min)));
+                case DIRECTION_LEFT_TO_RIGHT:
+                    GlStateManager.glBegin(GL_QUADS);
 
-                textureManager.bindTexture(fillRL);
-                GlStateManager.color(fillColor.rf(), fillColor.gf(), fillColor.bf(), fillColor.af());
+                    GlStateManager.glTexCoord2f(0, 0);
+                    GlStateManager.glVertex3f(-halfW, -halfH, 0);
 
-                float w = (float) (fillPNG.getWidth() * hScale), h = (float) (fillPNG.getHeight() * vScale);
-                float halfW = w * 0.5f, halfH = h * 0.5f;
+                    GlStateManager.glTexCoord2f(0, 1);
+                    GlStateManager.glVertex3f(-halfW, halfH, 0);
 
-                switch (direction)
-                {
-                    case DIRECTION_LEFT_TO_RIGHT:
-                        GlStateManager.glBegin(GL_QUADS);
+                    GlStateManager.glTexCoord2f(fillPercent, 1);
+                    GlStateManager.glVertex3f(-halfW + w * fillPercent, halfH, 0);
 
-                        GlStateManager.glTexCoord2f(0, 0);
-                        GlStateManager.glVertex3f(-halfW, -halfH, 0);
+                    GlStateManager.glTexCoord2f(fillPercent, 0);
+                    GlStateManager.glVertex3f(-halfW + w * fillPercent, -halfH, 0);
 
-                        GlStateManager.glTexCoord2f(0, 1);
-                        GlStateManager.glVertex3f(-halfW, halfH, 0);
+                    GlStateManager.glEnd();
+                    break;
 
-                        GlStateManager.glTexCoord2f(fillPercent, 1);
-                        GlStateManager.glVertex3f(-halfW + w * fillPercent, halfH, 0);
+                case DIRECTION_RIGHT_TO_LEFT:
+                    GlStateManager.glBegin(GL_QUADS);
 
-                        GlStateManager.glTexCoord2f(fillPercent, 0);
-                        GlStateManager.glVertex3f(-halfW + w * fillPercent, -halfH, 0);
+                    GlStateManager.glTexCoord2f(1 - fillPercent, 0);
+                    GlStateManager.glVertex3f(halfW - w * fillPercent, -halfH, 0);
 
-                        GlStateManager.glEnd();
-                        break;
+                    GlStateManager.glTexCoord2f(1 - fillPercent, 1);
+                    GlStateManager.glVertex3f(halfW - w * fillPercent, halfH, 0);
 
-                    case DIRECTION_RIGHT_TO_LEFT:
-                        GlStateManager.glBegin(GL_QUADS);
+                    GlStateManager.glTexCoord2f(1, 1);
+                    GlStateManager.glVertex3f(halfW, halfH, 0);
 
-                        GlStateManager.glTexCoord2f(1 - fillPercent, 0);
-                        GlStateManager.glVertex3f(halfW - w * fillPercent, -halfH, 0);
+                    GlStateManager.glTexCoord2f(1, 0);
+                    GlStateManager.glVertex3f(halfW, -halfH, 0);
 
-                        GlStateManager.glTexCoord2f(1 - fillPercent, 1);
-                        GlStateManager.glVertex3f(halfW - w * fillPercent, halfH, 0);
+                    GlStateManager.glEnd();
+                    break;
 
-                        GlStateManager.glTexCoord2f(1, 1);
-                        GlStateManager.glVertex3f(halfW, halfH, 0);
+                case DIRECTION_TOP_TO_BOTTOM:
+                    GlStateManager.glBegin(GL_QUADS);
 
-                        GlStateManager.glTexCoord2f(1, 0);
-                        GlStateManager.glVertex3f(halfW, -halfH, 0);
+                    GlStateManager.glTexCoord2f(0, 0);
+                    GlStateManager.glVertex3f(-halfW, -halfH, 0);
 
-                        GlStateManager.glEnd();
-                        break;
+                    GlStateManager.glTexCoord2f(0, fillPercent);
+                    GlStateManager.glVertex3f(-halfW, -halfH + h * fillPercent, 0);
 
-                    case DIRECTION_TOP_TO_BOTTOM:
-                        GlStateManager.glBegin(GL_QUADS);
+                    GlStateManager.glTexCoord2f(1, fillPercent);
+                    GlStateManager.glVertex3f(halfW, -halfH + h * fillPercent, 0);
 
-                        GlStateManager.glTexCoord2f(0, 0);
-                        GlStateManager.glVertex3f(-halfW, -halfH, 0);
+                    GlStateManager.glTexCoord2f(1, 0);
+                    GlStateManager.glVertex3f(halfW, -halfH, 0);
 
-                        GlStateManager.glTexCoord2f(0, fillPercent);
-                        GlStateManager.glVertex3f(-halfW, -halfH + h * fillPercent, 0);
+                    GlStateManager.glEnd();
+                    break;
 
-                        GlStateManager.glTexCoord2f(1, fillPercent);
-                        GlStateManager.glVertex3f(halfW, -halfH + h * fillPercent, 0);
+                case DIRECTION_BOTTOM_TO_TOP:
+                    GlStateManager.glBegin(GL_QUADS);
 
-                        GlStateManager.glTexCoord2f(1, 0);
-                        GlStateManager.glVertex3f(halfW, -halfH, 0);
+                    GlStateManager.glTexCoord2f(0, 1 - fillPercent);
+                    GlStateManager.glVertex3f(-halfW, halfH - h * fillPercent, 0);
 
-                        GlStateManager.glEnd();
-                        break;
+                    GlStateManager.glTexCoord2f(0, 1);
+                    GlStateManager.glVertex3f(-halfW, halfH, 0);
 
-                    case DIRECTION_BOTTOM_TO_TOP:
-                        GlStateManager.glBegin(GL_QUADS);
+                    GlStateManager.glTexCoord2f(1, 1);
+                    GlStateManager.glVertex3f(halfW, halfH, 0);
 
-                        GlStateManager.glTexCoord2f(0, 1 - fillPercent);
-                        GlStateManager.glVertex3f(-halfW, halfH - h * fillPercent, 0);
+                    GlStateManager.glTexCoord2f(1, 1 - fillPercent);
+                    GlStateManager.glVertex3f(halfW, halfH - h * fillPercent, 0);
 
-                        GlStateManager.glTexCoord2f(0, 1);
-                        GlStateManager.glVertex3f(-halfW, halfH, 0);
-
-                        GlStateManager.glTexCoord2f(1, 1);
-                        GlStateManager.glVertex3f(halfW, halfH, 0);
-
-                        GlStateManager.glTexCoord2f(1, 1 - fillPercent);
-                        GlStateManager.glVertex3f(halfW, halfH - h * fillPercent, 0);
-
-                        GlStateManager.glEnd();
-                        break;
-                }
+                    GlStateManager.glEnd();
+                    break;
             }
         }
 
         //Item or potion effect
-        if (hotbarItem > 0 && hotbarItem < 10)
-        {
-            ItemStack stack = Minecraft.getMinecraft().player.inventory.getStackInSlot(hotbarItem - 1);
-            if (!stack.isEmpty())
-            {
-                GlStateManager.pushMatrix();
-                GlStateManager.scale(hotbarItemScale, hotbarItemScale, 1);
-                RenderHelper.enableGUIStandardItemLighting();
-
-                Minecraft.getMinecraft().getRenderItem().renderItemIntoGUI(stack, -8, -8);
-
-                RenderHelper.disableStandardItemLighting();
-                GlStateManager.popMatrix();
-            }
-        }
-        else if (currentPotionEffect != null)
+        if (currentPotionEffect != null || stack != null)
         {
             GlStateManager.color(1, 1, 1, 1);
-            Minecraft.getMinecraft().getTextureManager().bindTexture(GuiContainer.INVENTORY_BACKGROUND);
 
             GlStateManager.pushMatrix();
-            GlStateManager.translate(potionEffectRelativeX, potionEffectRelativeY, 0);
-            GlStateManager.scale(potionEffectScale, potionEffectScale, 1);
+            GlStateManager.translate(itemOrPotionRelativeX, itemOrPotionRelativeY, 0);
+            GlStateManager.scale(itemOrPotionScale, itemOrPotionScale, 1);
 
-            Tessellator tessellator = Tessellator.getInstance();
-            BufferBuilder bufferbuilder = tessellator.getBuffer();
-            bufferbuilder.begin(7, DefaultVertexFormats.POSITION_TEX);
-            int index = currentPotionEffect.getPotion().getStatusIconIndex(), x = -9, y = -9, u = index % 8 * 18, v = 198 + index / 8 * 18, width = 18, height = 18;
-            bufferbuilder.pos(x, y + height, 0).tex(u * 0.00390625, (v + height) * 0.00390625).endVertex();
-            bufferbuilder.pos(x + width, y + height, 0).tex((u + width) * 0.00390625, (v + height) * 0.00390625).endVertex();
-            bufferbuilder.pos(x + width, y, 0).tex((u + width) * 0.00390625, v * 0.00390625).endVertex();
-            bufferbuilder.pos(x, y, 0).tex(u * 0.00390625, v * 0.00390625).endVertex();
-            tessellator.draw();
+
+            if (currentPotionEffect != null)
+            {
+                Minecraft.getMinecraft().getTextureManager().bindTexture(GuiContainer.INVENTORY_BACKGROUND);
+
+                Tessellator tessellator = Tessellator.getInstance();
+                BufferBuilder bufferbuilder = tessellator.getBuffer();
+                bufferbuilder.begin(7, DefaultVertexFormats.POSITION_TEX);
+                int index = currentPotionEffect.getPotion().getStatusIconIndex(), x = -9, y = -9, u = index % 8 * 18, v = 198 + index / 8 * 18, width = 18, height = 18;
+                bufferbuilder.pos(x, y + height, 0).tex(u * 0.00390625, (v + height) * 0.00390625).endVertex();
+                bufferbuilder.pos(x + width, y + height, 0).tex((u + width) * 0.00390625, (v + height) * 0.00390625).endVertex();
+                bufferbuilder.pos(x + width, y, 0).tex((u + width) * 0.00390625, v * 0.00390625).endVertex();
+                bufferbuilder.pos(x, y, 0).tex(u * 0.00390625, v * 0.00390625).endVertex();
+                tessellator.draw();
+            }
+            else if (!stack.isEmpty())
+            {
+                RenderHelper.enableGUIStandardItemLighting();
+                Minecraft.getMinecraft().getRenderItem().renderItemIntoGUI(stack, -8, -8);
+                RenderHelper.disableStandardItemLighting();
+            }
+
 
             GlStateManager.popMatrix();
         }
+
 
         //Foreground
         if (forePNG != null && foreColor.af() > 0)
@@ -438,7 +421,7 @@ public class CBarElement extends CHUDElement
                 String s = text.replaceAll(Tools.caselessRegex("@min"), min == null ? "null" : String.format("%.1f", min));
                 s = s.replaceAll(Tools.caselessRegex("@current"), current == null ? "null" : String.format("%.1f", current));
                 s = s.replaceAll(Tools.caselessRegex("@max"), max == null ? "null" : String.format("%.1f", max));
-                s = s.replaceAll(Tools.caselessRegex("@level"), "" + Minecraft.getMinecraft().player.experienceLevel);
+                s = s.replaceAll(Tools.caselessRegex("@level"), "" + player.experienceLevel);
                 s = s.replaceAll(Tools.caselessRegex("@percent"), min == null || current == null || max == null ? "N/A%" : "" + Math.floor(100 * (current - min) / (max - min)) + "%");
                 OutlinedFontRenderer.draw(s, -(OutlinedFontRenderer.getStringWidth(s) >>> 1), -(OutlinedFontRenderer.LINE_HEIGHT >>> 1), textColor, textOutlineColor);
             }
@@ -446,7 +429,7 @@ public class CBarElement extends CHUDElement
     }
 
 
-    protected Double parseVal(String s)
+    protected Double parseVal(String s, boolean itemIsMainhand)
     {
         Entity entity;
         switch (s.toLowerCase())
@@ -467,6 +450,7 @@ public class CBarElement extends CHUDElement
                 return (double) Minecraft.getMinecraft().player.experience;
 
             case "attackcooldown":
+                if (!itemIsMainhand) return 0d;
                 return (double) Minecraft.getMinecraft().player.getCooledAttackStrength(0);
 
             case "mountcharge":
@@ -517,13 +501,10 @@ public class CBarElement extends CHUDElement
         buf.writeInt(fillColor.color());
         buf.writeInt(foreColor.color());
 
-        buf.writeInt(hotbarItem);
-        buf.writeDouble(hotbarItemScale);
-
-        buf.writeInt(potionEffect);
-        buf.writeInt(potionEffectRelativeX);
-        buf.writeInt(potionEffectRelativeY);
-        buf.writeDouble(potionEffectScale);
+        ByteBufUtils.writeUTF8String(buf, itemOrPotion);
+        buf.writeInt(itemOrPotionRelativeX);
+        buf.writeInt(itemOrPotionRelativeY);
+        buf.writeDouble(itemOrPotionScale);
 
         ByteBufUtils.writeUTF8String(buf, text);
         buf.writeInt(textRelativeX);
@@ -564,13 +545,10 @@ public class CBarElement extends CHUDElement
         fillColor = new Color(buf.readInt());
         foreColor = new Color(buf.readInt());
 
-        hotbarItem = buf.readInt();
-        hotbarItemScale = buf.readDouble();
-
-        potionEffect = buf.readInt();
-        potionEffectRelativeX = buf.readInt();
-        potionEffectRelativeY = buf.readInt();
-        potionEffectScale = buf.readDouble();
+        itemOrPotion = ByteBufUtils.readUTF8String(buf);
+        itemOrPotionRelativeX = buf.readInt();
+        itemOrPotionRelativeY = buf.readInt();
+        itemOrPotionScale = buf.readDouble();
 
         text = ByteBufUtils.readUTF8String(buf);
         textRelativeX = buf.readInt();
@@ -602,11 +580,9 @@ public class CBarElement extends CHUDElement
 
         ci.set(backColor.color()).save(stream).set(fillColor.color()).save(stream).set(foreColor.color()).save(stream);
 
-        ci.set(hotbarItem).save(stream);
-        cd.set(hotbarItemScale).save(stream);
-
-        ci.set(potionEffect).save(stream).set(potionEffectRelativeX).save(stream).set(potionEffectRelativeY).save(stream);
-        cd.set(potionEffectScale).save(stream);
+        cs.set(itemOrPotion).save(stream);
+        ci.set(itemOrPotionRelativeX).save(stream).set(itemOrPotionRelativeY).save(stream);
+        cd.set(itemOrPotionScale).save(stream);
 
         cs.set(text).save(stream);
         ci.set(textRelativeX).save(stream).set(textRelativeY).save(stream).set(textColor.color()).save(stream);
@@ -648,13 +624,10 @@ public class CBarElement extends CHUDElement
         fillColor = new Color(ci.load(stream).value);
         foreColor = new Color(ci.load(stream).value);
 
-        hotbarItem = ci.load(stream).value;
-        hotbarItemScale = cd.load(stream).value;
-
-        potionEffect = ci.load(stream).value;
-        potionEffectRelativeX = ci.load(stream).value;
-        potionEffectRelativeY = ci.load(stream).value;
-        potionEffectScale = cd.load(stream).value;
+        itemOrPotion = cs.load(stream).value;
+        itemOrPotionRelativeX = ci.load(stream).value;
+        itemOrPotionRelativeY = ci.load(stream).value;
+        itemOrPotionScale = cd.load(stream).value;
 
         text = cs.load(stream).value;
         textRelativeX = ci.load(stream).value;
@@ -737,13 +710,10 @@ public class CBarElement extends CHUDElement
             GUIColor fillColor = new GUIColor(this, element.fillColor);
             GUIColor foreColor = new GUIColor(this, element.foreColor);
 
-            GUILabeledTextInput hotbarItem = new GUILabeledTextInput(this, "Hotbar Item Slot (0 is none): ", "" + element.hotbarItem, HOTBAR_SLOT_FILTER);
-            GUILabeledTextInput hotbarItemScale = new GUILabeledTextInput(this, "Hotbar Item Scale: ", "" + element.hotbarItemScale, FilterFloat.INSTANCE);
-
-            GUILabeledTextInput potionEffect = new GUILabeledTextInput(this, "Potion Effect Slot (0 is none): ", "" + element.potionEffect, POTION_EFFECT_FILTER);
-            GUILabeledTextInput potionEffectRelativeX = new GUILabeledTextInput(this, "Potion Effect Relative X: ", "" + element.potionEffectRelativeX, FilterInt.INSTANCE);
-            GUILabeledTextInput potionEffectRelativeY = new GUILabeledTextInput(this, "Potion Effect Relative Y: ", "" + element.potionEffectRelativeY, FilterInt.INSTANCE);
-            GUILabeledTextInput potionEffectScale = new GUILabeledTextInput(this, "Potion Effect Icon Scale: ", "" + element.potionEffectScale, FilterFloat.INSTANCE);
+            GUILabeledTextInput itemOrPotion = new GUILabeledTextInput(this, "Item or Potion Effect Slot: ", element.itemOrPotion, FilterNone.INSTANCE);
+            GUILabeledTextInput itemOrPotionRelativeX = new GUILabeledTextInput(this, "Item or Potion Effect Relative X: ", "" + element.itemOrPotionRelativeX, FilterInt.INSTANCE);
+            GUILabeledTextInput itemOrPotionRelativeY = new GUILabeledTextInput(this, "Item or Potion Effect Relative Y: ", "" + element.itemOrPotionRelativeY, FilterInt.INSTANCE);
+            GUILabeledTextInput itemOrPotionScale = new GUILabeledTextInput(this, "Item or Potion Effect Icon Scale: ", "" + element.itemOrPotionScale, FilterFloat.INSTANCE);
 
             GUILabeledTextInput text = new GUILabeledTextInput(this, "Text: ", element.text, FilterNone.INSTANCE);
             GUILabeledTextInput textRelativeX = new GUILabeledTextInput(this, "Text Relative X: ", "" + element.textRelativeX, FilterInt.INSTANCE);
@@ -831,35 +801,21 @@ public class CBarElement extends CHUDElement
                     foreColor.addClickActions(() -> new ColorSelectionGUI(foreColor).addOnClosedActions(() -> element.foreColor = foreColor.getValue())),
 
                     new GUITextSpacer(this),
-                    hotbarItem.addEditActions(() ->
+                    itemOrPotion.addEditActions(() -> element.itemOrPotion = itemOrPotion.getText()),
+                    new GUIElement(this, 1, 0),
+                    itemOrPotionRelativeX.addEditActions(() ->
                     {
-                        if (hotbarItem.valid()) element.hotbarItem = HOTBAR_SLOT_FILTER.parse(hotbarItem.getText());
+                        if (itemOrPotionRelativeX.valid()) element.itemOrPotionRelativeX = FilterInt.INSTANCE.parse(itemOrPotionRelativeX.getText());
                     }),
                     new GUIElement(this, 1, 0),
-                    hotbarItemScale.addEditActions(() ->
+                    itemOrPotionRelativeY.addEditActions(() ->
                     {
-                        if (hotbarItemScale.valid()) element.hotbarItemScale = FilterFloat.INSTANCE.parse(hotbarItemScale.getText());
-                    }),
-
-                    new GUITextSpacer(this),
-                    potionEffect.addEditActions(() ->
-                    {
-                        if (potionEffect.valid()) element.potionEffect = POTION_EFFECT_FILTER.parse(potionEffect.getText());
+                        if (itemOrPotionRelativeY.valid()) element.itemOrPotionRelativeY = FilterInt.INSTANCE.parse(itemOrPotionRelativeY.getText());
                     }),
                     new GUIElement(this, 1, 0),
-                    potionEffectRelativeX.addEditActions(() ->
+                    itemOrPotionScale.addEditActions(() ->
                     {
-                        if (potionEffectRelativeX.valid()) element.potionEffectRelativeX = FilterInt.INSTANCE.parse(potionEffectRelativeX.getText());
-                    }),
-                    new GUIElement(this, 1, 0),
-                    potionEffectRelativeY.addEditActions(() ->
-                    {
-                        if (potionEffectRelativeY.valid()) element.potionEffectRelativeY = FilterInt.INSTANCE.parse(potionEffectRelativeY.getText());
-                    }),
-                    new GUIElement(this, 1, 0),
-                    potionEffectScale.addEditActions(() ->
-                    {
-                        if (potionEffectScale.valid()) element.potionEffectScale = FilterFloat.INSTANCE.parse(potionEffectScale.getText());
+                        if (itemOrPotionScale.valid()) element.itemOrPotionScale = FilterFloat.INSTANCE.parse(itemOrPotionScale.getText());
                     }),
 
                     new GUITextSpacer(this),

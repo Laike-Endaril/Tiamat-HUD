@@ -192,9 +192,9 @@ public abstract class CHUDElement extends Component
                     bar.fillColor = Color.GRAY;
                     bar.xOffset = -7 - (i % 10) * 14;
                     bar.yOffset = 10 + (i / 10) * 19;
-                    bar.potionEffect = i + 1;
-                    bar.potionEffectRelativeY = -4;
-                    bar.potionEffectScale = 0.5;
+                    bar.itemOrPotion = "potion" + (i + 1);
+                    bar.itemOrPotionRelativeY = -4;
+                    bar.itemOrPotionScale = 0.5;
                     bar.hScale = 0.5;
                     bar.vScale = 0.5;
                     bar.textRelativeY = 6;
@@ -213,7 +213,9 @@ public abstract class CHUDElement extends Component
                     bar.fillColor = Color.GRAY;
                     bar.xOffset = -72 + i * 18;
                     bar.yOffset = -9;
-                    bar.hotbarItem = i + 1;
+                    bar.itemOrPotion = "hotbar" + (i + 1);
+                    bar.current = "attackcooldown";
+                    bar.max = "1";
                     bar.text = "";
                     hudElements.put(bar, "Hotbar Slot " + (i + 1));
                 }
