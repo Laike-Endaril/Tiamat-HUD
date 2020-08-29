@@ -1,0 +1,1 @@
+Allow rendering of bar elements with any number of missing parts

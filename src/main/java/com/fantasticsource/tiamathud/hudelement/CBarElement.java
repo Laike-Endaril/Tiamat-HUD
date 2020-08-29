@@ -105,12 +105,20 @@ public class CBarElement extends CHUDElement
 
     public void setBackRL(ResourceLocation backRL)
     {
+        if (backRL == this.backRL) return;
+
+        if (backPNG != null && backPNG != DEFAULT_BACK_PNG) backPNG.free();
+
         this.backRL = backRL;
         backPNG = backRL == null ? null : MCTools.getPNG(backRL);
     }
 
     public void setFillRL(ResourceLocation fillRL)
     {
+        if (fillRL == this.fillRL) return;
+
+        if (fillPNG != null && fillPNG != DEFAULT_FILL_PNG) fillPNG.free();
+
         this.fillRL = fillRL;
         fillPNG = fillRL == null ? null : MCTools.getPNG(fillRL);
 
@@ -119,6 +127,10 @@ public class CBarElement extends CHUDElement
 
     public void setForeRL(ResourceLocation foreRL)
     {
+        if (foreRL == this.foreRL) return;
+
+        if (forePNG != null && forePNG != DEFAULT_FORE_PNG) forePNG.free();
+
         this.foreRL = foreRL;
         forePNG = foreRL == null ? null : MCTools.getPNG(foreRL);
     }
