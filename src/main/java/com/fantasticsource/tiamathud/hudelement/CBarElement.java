@@ -777,17 +777,17 @@ public class CBarElement extends CHUDElement
                     new GUITextSpacer(this),
                     backRL.addEditActions(() ->
                     {
-                        if (backRL.valid()) element.backRL = FilterNullableResourceLocation.INSTANCE.parse(backRL.getText());
+                        if (backRL.valid()) element.setBackRL(FilterNullableResourceLocation.INSTANCE.parse(backRL.getText()));
                     }),
                     new GUIElement(this, 1, 0),
                     fillRL.addEditActions(() ->
                     {
-                        if (fillRL.valid()) element.fillRL = FilterNullableResourceLocation.INSTANCE.parse(fillRL.getText());
+                        if (fillRL.valid()) element.setFillRL(FilterNullableResourceLocation.INSTANCE.parse(fillRL.getText()));
                     }),
                     new GUIElement(this, 1, 0),
                     foreRL.addEditActions(() ->
                     {
-                        if (foreRL.valid()) element.foreRL = FilterNullableResourceLocation.INSTANCE.parse(foreRL.getText());
+                        if (foreRL.valid()) element.setForeRL(FilterNullableResourceLocation.INSTANCE.parse(foreRL.getText()));
                     }),
 
                     new GUITextSpacer(this),
