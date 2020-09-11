@@ -1,6 +1,7 @@
 package com.fantasticsource.tiamathud;
 
 import io.netty.buffer.ByteBuf;
+import net.minecraft.client.Minecraft;
 import net.minecraftforge.fml.common.network.ByteBufUtils;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
@@ -26,6 +27,7 @@ public class Network
     {
         public String key;
         public double value;
+        public String valueS = null;
 
         public CustomHUDDataPacket()
         {
@@ -38,18 +40,27 @@ public class Network
             this.value = value;
         }
 
+        public CustomHUDDataPacket(String key, String value)
+        {
+            this.key = key;
+            this.valueS = value;
+        }
+
         @Override
         public void toBytes(ByteBuf buf)
         {
             ByteBufUtils.writeUTF8String(buf, key);
-            buf.writeDouble(value);
+            buf.writeBoolean(valueS != null);
+            if (valueS != null) ByteBufUtils.writeUTF8String(buf, valueS);
+            else buf.writeDouble(value);
         }
 
         @Override
         public void fromBytes(ByteBuf buf)
         {
             key = ByteBufUtils.readUTF8String(buf);
-            value = buf.readDouble();
+            if (buf.readBoolean()) valueS = ByteBufUtils.readUTF8String(buf);
+            else value = buf.readDouble();
         }
     }
 
@@ -59,7 +70,12 @@ public class Network
         @SideOnly(Side.CLIENT)
         public IMessage onMessage(CustomHUDDataPacket packet, MessageContext ctx)
         {
-            CustomHUDData.DATA.put(packet.key, packet.value);
+            Minecraft.getMinecraft().addScheduledTask(() ->
+            {
+                String valueS = packet.valueS;
+                if (valueS != null) CustomHUDData.DATA.put(packet.key, valueS);
+                else CustomHUDData.DATA.put(packet.key, "" + packet.value);
+            });
             return null;
         }
     }

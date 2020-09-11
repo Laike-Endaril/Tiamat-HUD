@@ -7,7 +7,7 @@ import java.util.LinkedHashMap;
 
 public class CustomHUDData
 {
-    public static LinkedHashMap<String, Double> DATA = new LinkedHashMap<>();
+    public static LinkedHashMap<String, String> DATA = new LinkedHashMap<>();
 
     @SubscribeEvent
     public static void clear(FMLNetworkEvent.ClientDisconnectionFromServerEvent event)

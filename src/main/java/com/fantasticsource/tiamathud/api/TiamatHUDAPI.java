@@ -26,8 +26,21 @@ public class TiamatHUDAPI
         }
     }
 
+
     public static void sendCustomHUDData(EntityPlayerMP player, String key, double value)
     {
         if (tiamatHUDAPIMethods != null) tiamatHUDAPIMethods.sendCustomHUDData(player, key, value);
+    }
+
+    public static void sendCustomHUDData(EntityPlayerMP player, String key, String value)
+    {
+        if (tiamatHUDAPIMethods != null) tiamatHUDAPIMethods.sendCustomHUDData(player, key, value);
+    }
+
+
+    public static String getCustomHUDData(String key)
+    {
+        if (tiamatHUDAPIMethods != null) return tiamatHUDAPIMethods.getCustomHUDData(key);
+        return null;
     }
 }
