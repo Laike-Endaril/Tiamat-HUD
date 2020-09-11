@@ -4,6 +4,8 @@ import com.fantasticsource.tiamathud.CustomHUDData;
 import com.fantasticsource.tiamathud.Network;
 import com.fantasticsource.tiamathud.api.ITiamatHUDNatives;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class TiamatHUDNatives implements ITiamatHUDNatives
 {
@@ -22,6 +24,7 @@ public class TiamatHUDNatives implements ITiamatHUDNatives
     }
 
 
+    @SideOnly(Side.CLIENT)
     @Override
     public String getCustomHUDData(String key)
     {
