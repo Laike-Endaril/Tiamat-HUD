@@ -479,7 +479,14 @@ public class CBarElement extends CHUDElement
                 return (double) ((EntityLivingBase) entity).getMaxHealth();
 
             default:
-                return Double.parseDouble(CustomHUDData.DATA.get(s));
+                try
+                {
+                    return Double.parseDouble(CustomHUDData.DATA.get(s));
+                }
+                catch (NumberFormatException e)
+                {
+                    return null;
+                }
         }
     }
 
