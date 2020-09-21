@@ -443,6 +443,8 @@ public class CBarElement extends CHUDElement
 
     protected Double parseVal(String s, boolean itemIsMainhand)
     {
+        if (s == null) return null;
+
         Entity entity;
         switch (s.toLowerCase())
         {
