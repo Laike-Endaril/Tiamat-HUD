@@ -485,7 +485,7 @@ public class CBarElement extends CHUDElement
                 {
                     return Double.parseDouble(CustomHUDData.DATA.get(s));
                 }
-                catch (NumberFormatException e)
+                catch (Exception e)
                 {
                     return null;
                 }
