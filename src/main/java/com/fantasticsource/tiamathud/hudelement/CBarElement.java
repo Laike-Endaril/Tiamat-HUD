@@ -139,19 +139,6 @@ public class CBarElement extends CHUDElement
     @Override
     protected void draw() //Render
     {
-        //Hard stop
-        if (fillPNG == null)
-        {
-            if (!error)
-            {
-                System.err.println(TextFormatting.RED + "Bar fill image not found: " + fillRL);
-                error = true;
-            }
-
-            return;
-        }
-
-
         //Min, current, and max value computation (and hard stops)
         Double min, current, max;
         EntityPlayer player = Minecraft.getMinecraft().player;
